@@ -15,4 +15,8 @@
     <ProjectReference Include="..\ERecruitment.Infrastructure\ERecruitment.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

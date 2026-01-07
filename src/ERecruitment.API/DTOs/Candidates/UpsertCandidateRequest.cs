@@ -1,30 +1,18 @@
-using ERecruitment.Domain.Common;
+﻿namespace ERecruitment.API.DTOs.Candidates;
 
-namespace ERecruitment.Domain.Entities;
-
-public class Candidate : BaseEntity
+public sealed class UpsertCandidateRequest
 {
-    // Personal info
     public string FullName { get; set; } = default!;
     public string Email { get; set; } = default!;
     public string Phone { get; set; } = default!;
     public string AddressLine { get; set; } = default!;
 
-    // Work (single last company only - simple version)
     public string? PreviousCompanyName { get; set; }
     public int? NoOfYearExperience { get; set; }
 
-    // Education (single latest only - simple version)
     public string InstituteName { get; set; } = default!;
     public string Subject { get; set; } = default!;
 
-    // Salary (simple version)
     public decimal? ExpectedSalary { get; set; }
     public string SalaryCurrency { get; set; } = "BDT";
-
-    // Resume/CV (stored as URL)
-    public string? ResumeFileName { get; set; }
-    public string? ResumeContentType { get; set; }
-    public long? ResumeSize { get; set; }
-    public string? ResumeUrl { get; set; }
 }

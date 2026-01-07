@@ -34,6 +34,13 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Decimal precision FIX
+        modelBuilder.Entity<Candidate>(entity =>
+        {
+            entity.Property(x => x.ExpectedSalary)
+                  .HasPrecision(18, 2);
+        });
+
         // Apply global tenant filter to every entity that implements ITenantEntity
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

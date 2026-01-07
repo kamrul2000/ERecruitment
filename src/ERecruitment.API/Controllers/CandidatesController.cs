@@ -118,4 +118,6 @@ public sealed class CandidatesController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+
 }

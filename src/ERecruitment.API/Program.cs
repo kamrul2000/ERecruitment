@@ -26,6 +26,7 @@ app.UseHttpsRedirection();
 
 // Tenant resolution middleware
 app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseStaticFiles();
 
 app.MapControllers();
 app.Run();
