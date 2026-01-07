@@ -1,0 +1,6 @@
+@ERecruitment.API_HostAddress = http://localhost:5263
+
+GET {{ERecruitment.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
