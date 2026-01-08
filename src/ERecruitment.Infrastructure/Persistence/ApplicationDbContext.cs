@@ -26,6 +26,8 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<JobApplication> JobApplications { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
 
+    public DbSet<JobApplicationStatusHistory> JobApplicationStatusHistories { get; set; }
+
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
     //IQueryable<Candidate> IApplicationDbContext.Candidates => Candidates.AsQueryable();
     //IQueryable<JobApplication> IApplicationDbContext.JobApplications => JobApplications.AsQueryable();
@@ -86,6 +88,16 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
             .WithMany()
             .HasForeignKey(x => x.JobPostingId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<JobApplicationStatusHistory>()
+    .HasIndex(x => new { x.TenantId, x.JobApplicationId, x.CreatedAt });
+
+        modelBuilder.Entity<JobApplicationStatusHistory>()
+            .HasOne<JobApplication>()
+            .WithMany()
+            .HasForeignKey(x => x.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
 
     }
 

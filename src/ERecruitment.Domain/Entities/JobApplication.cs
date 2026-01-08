@@ -11,4 +11,13 @@ public class JobApplication : BaseEntity
     public string Status { get; set; } = "Submitted";
 
     public string? Notes { get; set; }
+
+    public decimal? ExpectedSalary { get; set; }
+    public string SalaryCurrency { get; set; } = "BDT";
+
+    // NEW: CV snapshot (important)
+    public string? ResumeUrlSnapshot { get; set; }
+    public string? ResumeFileNameSnapshot { get; set; }
+    public string? ResumeContentTypeSnapshot { get; set; }
+    public long? ResumeSizeSnapshot { get; set; }
 }

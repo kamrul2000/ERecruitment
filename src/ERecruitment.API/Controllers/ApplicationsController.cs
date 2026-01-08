@@ -70,26 +70,38 @@ public sealed class ApplicationsController : ControllerBase
         if (request.CandidateId == Guid.Empty) return BadRequest("CandidateId is required.");
         if (request.JobPostingId == Guid.Empty) return BadRequest("JobPostingId is required.");
 
-        // These checks are tenant-safe automatically because of global query filters
-        var candidateExists = await _db.Candidates.AnyAsync(x => x.Id == request.CandidateId, ct);
-        if (!candidateExists) return BadRequest("Candidate not found (or not in this tenant).");
+        var candidate = await _db.Candidates.FirstOrDefaultAsync(x => x.Id == request.CandidateId, ct);
+        if (candidate is null) return BadRequest("Candidate not found (or not in this tenant).");
 
-        var jobExists = await _db.JobPostings.AnyAsync(x => x.Id == request.JobPostingId, ct);
-        if (!jobExists) return BadRequest("Job not found (or not in this tenant).");
+        var job = await _db.JobPostings.FirstOrDefaultAsync(x => x.Id == request.JobPostingId, ct);
+        if (job is null) return BadRequest("Job not found (or not in this tenant).");
 
-        // Prevent duplicate application (also enforced by unique index)
+        // Prevent duplicate application (tenant-safe due to query filters)
         var duplicate = await _db.JobApplications.AnyAsync(
             x => x.CandidateId == request.CandidateId && x.JobPostingId == request.JobPostingId,
             ct);
 
         if (duplicate) return Conflict("Candidate already applied to this job.");
 
+        // Candidate must have CV uploaded (recommended rule)
+        if (string.IsNullOrWhiteSpace(candidate.ResumeUrl))
+            return BadRequest("Candidate has no CV. Upload CV first.");
+
         var app = new JobApplication
         {
-            CandidateId = request.CandidateId,
-            JobPostingId = request.JobPostingId,
+            CandidateId = candidate.Id,
+            JobPostingId = job.Id,
             Status = "Submitted",
-            Notes = request.Notes?.Trim()
+
+            ExpectedSalary = request.ExpectedSalary ?? candidate.ExpectedSalary,
+            SalaryCurrency = string.IsNullOrWhiteSpace(request.SalaryCurrency) ? "BDT" : request.SalaryCurrency.Trim(),
+            Notes = request.Notes?.Trim(),
+
+            // Snapshot CV at apply time
+            ResumeUrlSnapshot = candidate.ResumeUrl,
+            ResumeFileNameSnapshot = candidate.ResumeFileName,
+            ResumeContentTypeSnapshot = candidate.ResumeContentType,
+            ResumeSizeSnapshot = candidate.ResumeSize
         };
 
         _db.JobApplications.Add(app);
@@ -98,21 +110,47 @@ public sealed class ApplicationsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = app.Id }, app);
     }
 
+
     [HttpPut("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateJobApplicationStatusRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Status))
             return BadRequest("Status is required.");
 
+        var allowed = new[] { "Submitted", "Reviewed", "Shortlisted", "Rejected", "Hired" };
+        var newStatus = request.Status.Trim();
+
+        if (!allowed.Contains(newStatus))
+            return BadRequest("Invalid status. Allowed: Submitted, Reviewed, Shortlisted, Rejected, Hired.");
+
         var app = await _db.JobApplications.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (app is null) return NotFound();
 
-        app.Status = request.Status.Trim();
+        var oldStatus = app.Status;
+
+        if (string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("New status is same as current status.");
+
+        // Update application
+        app.Status = newStatus;
         app.Notes = request.Notes?.Trim();
+
+        // Insert history record
+        var history = new JobApplicationStatusHistory
+        {
+            JobApplicationId = app.Id,
+            FromStatus = oldStatus,
+            ToStatus = newStatus,
+            Comment = request.Notes?.Trim(),
+            ChangedBy = null // later set from JWT user
+        };
+
+        _db.JobApplicationStatusHistories.Add(history);
 
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -124,4 +162,20 @@ public sealed class ApplicationsController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+    [HttpGet("{id:guid}/history")]
+    public async Task<IActionResult> GetHistory(Guid id, CancellationToken ct)
+    {
+        // Ensure the application exists in this tenant
+        var exists = await _db.JobApplications.AnyAsync(x => x.Id == id, ct);
+        if (!exists) return NotFound();
+
+        var items = await _db.JobApplicationStatusHistories
+            .AsNoTracking()
+            .Where(x => x.JobApplicationId == id)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+        return Ok(items);
+    }
+
 }
