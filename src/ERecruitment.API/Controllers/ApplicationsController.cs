@@ -3,6 +3,8 @@ using ERecruitment.Application.Abstractions;
 using ERecruitment.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ERecruitment.API.DTOs.Applications;
+
 
 namespace ERecruitment.API.Controllers;
 
@@ -177,5 +179,194 @@ public sealed class ApplicationsController : ControllerBase
 
         return Ok(items);
     }
+
+    [HttpPost("/api/jobs/{jobId:guid}/applications/search")]
+    public async Task<IActionResult> SearchApplications(
+    Guid jobId,
+    [FromBody] ApplicationFilterQuery q,
+    CancellationToken ct)
+
+
+    {
+        // Validate paging
+        if (q.Page < 1) q.Page = 1;
+        if (q.PageSize < 1) q.PageSize = 20;
+        if (q.PageSize > 100) q.PageSize = 100;
+
+        // Ensure job exists in this tenant
+        var jobExists = await _db.JobPostings.AnyAsync(x => x.Id == jobId, ct);
+        if (!jobExists) return NotFound("Job not found (or not in this tenant).");
+
+        var query =
+            from app in _db.JobApplications.AsNoTracking()
+            join cand in _db.Candidates.AsNoTracking()
+                on app.CandidateId equals cand.Id
+            where app.JobPostingId == jobId
+            select new
+            {
+                ApplicationId = app.Id,
+                app.JobPostingId,
+                app.CandidateId,
+                app.Status,
+                app.CreatedAt,
+                app.UpdatedAt,
+
+                // Salary from application (if you added it in Phase 6A)
+                app.ExpectedSalary,
+                app.SalaryCurrency,
+
+                // CV snapshot
+                app.ResumeUrlSnapshot,
+
+                // Candidate info
+                CandidateName = cand.FullName,
+                CandidateEmail = cand.Email,
+                CandidatePhone = cand.Phone,
+                ExperienceYears = cand.NoOfYearExperience
+            };
+
+        // Status filter (supports comma separated list)
+        if (!string.IsNullOrWhiteSpace(q.Status))
+        {
+            var statuses = q.Status
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.Trim())
+                .ToArray();
+
+            if (statuses.Length > 0)
+                query = query.Where(x => statuses.Contains(x.Status));
+        }
+
+        // Salary filters
+        if (q.MinSalary.HasValue) query = query.Where(x => x.ExpectedSalary >= q.MinSalary.Value);
+        if (q.MaxSalary.HasValue) query = query.Where(x => x.ExpectedSalary <= q.MaxSalary.Value);
+
+        // Experience filters
+        if (q.MinExperienceYears.HasValue) query = query.Where(x => x.ExperienceYears >= q.MinExperienceYears.Value);
+        if (q.MaxExperienceYears.HasValue) query = query.Where(x => x.ExperienceYears <= q.MaxExperienceYears.Value);
+
+        // Keyword filter (name/email/phone)
+        if (!string.IsNullOrWhiteSpace(q.Keyword))
+        {
+            var k = q.Keyword.Trim();
+
+            query = query.Where(x =>
+                EF.Functions.Like(x.CandidateName, $"%{k}%") ||
+                EF.Functions.Like(x.CandidateEmail, $"%{k}%") ||
+                EF.Functions.Like(x.CandidatePhone, $"%{k}%"));
+        }
+
+        // Sorting
+        var desc = string.Equals(q.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = q.SortBy.ToLowerInvariant() switch
+        {
+            "salary" => desc ? query.OrderByDescending(x => x.ExpectedSalary) : query.OrderBy(x => x.ExpectedSalary),
+            "experience" => desc ? query.OrderByDescending(x => x.ExperienceYears) : query.OrderBy(x => x.ExperienceYears),
+            _ => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt)
+        };
+
+        var total = await query.CountAsync(ct);
+
+        var items = await query
+            .Skip((q.Page - 1) * q.PageSize)
+            .Take(q.PageSize)
+            .ToListAsync(ct);
+
+        return Ok(new
+        {
+            total,
+            page = q.Page,
+            pageSize = q.PageSize,
+            items
+        });
+    }
+
+
+    [HttpPost("search")]
+    public async Task<IActionResult> Search(
+    [FromBody] ApplicationFilterQuery q,
+    CancellationToken ct)
+    {
+        if (q.Page < 1) q.Page = 1;
+        if (q.PageSize < 1) q.PageSize = 20;
+        if (q.PageSize > 100) q.PageSize = 100;
+
+        var query =
+            from app in _db.JobApplications.AsNoTracking()
+            join cand in _db.Candidates.AsNoTracking() on app.CandidateId equals cand.Id
+            join job in _db.JobPostings.AsNoTracking() on app.JobPostingId equals job.Id
+            select new
+            {
+                ApplicationId = app.Id,
+                app.JobPostingId,
+                JobTitle = job.Title,
+                Department = job.Department,
+
+                app.CandidateId,
+                CandidateName = cand.FullName,
+                CandidateEmail = cand.Email,
+                CandidatePhone = cand.Phone,
+                ExperienceYears = cand.NoOfYearExperience,
+
+                app.Status,
+                app.CreatedAt,
+                app.ExpectedSalary,
+                app.SalaryCurrency,
+                app.ResumeUrlSnapshot
+            };
+
+        // Status
+        if (!string.IsNullOrWhiteSpace(q.Status))
+        {
+            var statuses = q.Status
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.Trim())
+                .ToArray();
+
+            if (statuses.Length > 0)
+                query = query.Where(x => statuses.Contains(x.Status));
+        }
+
+        // Salary
+        if (q.MinSalary.HasValue) query = query.Where(x => x.ExpectedSalary >= q.MinSalary.Value);
+        if (q.MaxSalary.HasValue) query = query.Where(x => x.ExpectedSalary <= q.MaxSalary.Value);
+
+        // Experience
+        if (q.MinExperienceYears.HasValue) query = query.Where(x => x.ExperienceYears >= q.MinExperienceYears.Value);
+        if (q.MaxExperienceYears.HasValue) query = query.Where(x => x.ExperienceYears <= q.MaxExperienceYears.Value);
+
+        // Keyword
+        if (!string.IsNullOrWhiteSpace(q.Keyword))
+        {
+            var k = q.Keyword.Trim();
+
+            query = query.Where(x =>
+                EF.Functions.Like(x.CandidateName, $"%{k}%") ||
+                EF.Functions.Like(x.CandidateEmail, $"%{k}%") ||
+                EF.Functions.Like(x.CandidatePhone, $"%{k}%") ||
+                EF.Functions.Like(x.JobTitle, $"%{k}%"));
+        }
+
+        // Sorting
+        var desc = string.Equals(q.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = q.SortBy.ToLowerInvariant() switch
+        {
+            "salary" => desc ? query.OrderByDescending(x => x.ExpectedSalary) : query.OrderBy(x => x.ExpectedSalary),
+            "experience" => desc ? query.OrderByDescending(x => x.ExperienceYears) : query.OrderBy(x => x.ExperienceYears),
+            _ => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt)
+        };
+
+        var total = await query.CountAsync(ct);
+
+        var items = await query
+            .Skip((q.Page - 1) * q.PageSize)
+            .Take(q.PageSize)
+            .ToListAsync(ct);
+
+        return Ok(new { total, page = q.Page, pageSize = q.PageSize, items });
+    }
+
 
 }
