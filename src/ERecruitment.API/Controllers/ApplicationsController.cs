@@ -1,9 +1,10 @@
 ﻿using ERecruitment.API.DTOs.Applications;
+using ERecruitment.API.DTOs.Applications;
 using ERecruitment.Application.Abstractions;
 using ERecruitment.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERecruitment.API.DTOs.Applications;
 
 
 namespace ERecruitment.API.Controllers;
@@ -112,7 +113,7 @@ public sealed class ApplicationsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = app.Id }, app);
     }
 
-
+    [Authorize(Roles = "Admin,Recruiter,HiringManager")]
     [HttpPut("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateJobApplicationStatusRequest request, CancellationToken ct)
     {

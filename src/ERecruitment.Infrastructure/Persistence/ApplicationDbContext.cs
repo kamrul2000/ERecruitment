@@ -25,8 +25,9 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<JobPosting> JobPostings { get; set; }
     public DbSet<JobApplication> JobApplications { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
-
     public DbSet<JobApplicationStatusHistory> JobApplicationStatusHistories { get; set; }
+    public DbSet<AppUser>Users { get; set; }
+
 
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
     //IQueryable<Candidate> IApplicationDbContext.Candidates => Candidates.AsQueryable();
@@ -97,6 +98,11 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
             .WithMany()
             .HasForeignKey(x => x.JobApplicationId)
             .OnDelete(DeleteBehavior.Cascade);
+
+
+        modelBuilder.Entity<AppUser>()
+    .HasIndex(x => new { x.TenantId, x.Email })
+    .IsUnique();
 
 
     }

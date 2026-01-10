@@ -1,6 +1,7 @@
 ﻿using ERecruitment.API.DTOs.Jobs;
 using ERecruitment.Application.Abstractions;
 using ERecruitment.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,7 @@ public sealed class JobsController : ControllerBase
         return job is null ? NotFound() : Ok(job);
     }
 
+    [Authorize(Roles = "Admin,Recruiter")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateJobPostingRequest request, CancellationToken ct)
     {
@@ -61,6 +63,7 @@ public sealed class JobsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = job.Id }, job);
     }
 
+    [Authorize(Roles = "Admin,Recruiter")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJobPostingRequest request, CancellationToken ct)
     {
@@ -81,7 +84,8 @@ public sealed class JobsController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
-
+    
+    [Authorize(Roles = "Admin,Recruiter")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

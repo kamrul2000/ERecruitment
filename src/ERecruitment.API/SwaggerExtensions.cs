@@ -1,23 +1,40 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 
 namespace ERecruitment.API.Extensions;
 
-public static class SwaggerTenantExtensions
+public static class SwaggerExtensions
 {
-    public static IServiceCollection AddSwaggerWithTenantHeader(this IServiceCollection services)
+    public static IServiceCollection AddSwaggerWithTenantAndBearer(this IServiceCollection services)
     {
         services.AddSwaggerGen(c =>
         {
-            c.AddSecurityDefinition("Tenant", new OpenApiSecurityScheme
+            c.SwaggerDoc("v1", new OpenApiInfo
             {
-                Name = "X-Tenant-Id",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Description = "Tenant identifier"
+                Title = "ERecruitment API",
+                Version = "v1"
             });
 
+            // Tenant Header
+            c.AddSecurityDefinition("TenantHeader", new OpenApiSecurityScheme
+            {
+                Name = "X-Tenant-Id",
+                Type = SecuritySchemeType.ApiKey,
+                In = ParameterLocation.Header,
+                Description = "Tenant Id (GUID)"
+            });
+
+            // Bearer JWT
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter JWT token. Example: Bearer {your_token}"
+            });
+
+            // Require both (Swagger will send both if you fill both)
             c.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 {
@@ -26,7 +43,18 @@ public static class SwaggerTenantExtensions
                         Reference = new OpenApiReference
                         {
                             Type = ReferenceType.SecurityScheme,
-                            Id = "Tenant"
+                            Id = "TenantHeader"
+                        }
+                    },
+                    Array.Empty<string>()
+                },
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
                         }
                     },
                     Array.Empty<string>()

@@ -1,53 +1,37 @@
-using ERecruitment.Infrastructure.Persistence;
+using System.Security.Claims;
 using ERecruitment.Infrastructure.Tenancy;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-namespace ERecruitment.API.Middleware
+
+namespace ERecruitment.API.Middleware;
+
+public sealed class TenantResolutionMiddleware : IMiddleware
 {
-    public sealed class TenantResolutionMiddleware
+    public Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        private readonly RequestDelegate _next;
+        var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-        public TenantResolutionMiddleware(RequestDelegate next)
+        // Allow swagger and tenant creation without tenant header/token
+        if (path.StartsWith("/swagger") || path.StartsWith("/api/tenants"))
+            return next(context);
+
+        var provider = context.RequestServices.GetRequiredService<TenantProvider>();
+
+        // 1) Try tenantId from JWT claim (after authentication)
+        var claimTenant = context.User?.FindFirst("tenantId")?.Value;
+        if (!string.IsNullOrWhiteSpace(claimTenant) && Guid.TryParse(claimTenant, out var jwtTenantId))
         {
-            _next = next;
+            provider.SetTenant(jwtTenantId);
+            return next(context);
         }
 
-        public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext, TenantProvider tenantProvider)
+        // 2) Fallback: header (for login/register/dev)
+        if (context.Request.Headers.TryGetValue("X-Tenant-Id", out var tenantHeader) &&
+            Guid.TryParse(tenantHeader.ToString(), out var headerTenantId))
         {
-            var path = context.Request.Path.Value ?? "";
-
-            // Skip tenant resolution for tenant creation endpoints
-            if (path.StartsWith("/api/tenants", StringComparison.OrdinalIgnoreCase))
-            {
-                await _next(context);
-                return;
-            }
-
-            var tenantIdHeader = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
-            if (!Guid.TryParse(tenantIdHeader, out var tenantId))
-            {
-                context.Response.StatusCode = 400;
-                await context.Response.WriteAsync("Missing or invalid X-Tenant-Id header.");
-                return;
-            }
-
-            // Check tenant exists in DB and is active
-            var tenantExists = await dbContext.Tenants
-                .AsNoTracking()
-                .AnyAsync(t => t.Id == tenantId && t.IsActive);
-
-            if (!tenantExists)
-            {
-                context.Response.StatusCode = 403;
-                await context.Response.WriteAsync("Tenant not found or inactive.");
-                return;
-            }
-
-            // Set the tenant in TenantProvider
-            tenantProvider.SetTenant(tenantId);
-
-            await _next(context);
+            provider.SetTenant(headerTenantId);
+            return next(context);
         }
+
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        return context.Response.WriteAsync("Missing tenant. Provide JWT with tenantId claim or X-Tenant-Id header.");
     }
 }
