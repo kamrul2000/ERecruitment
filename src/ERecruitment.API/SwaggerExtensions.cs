@@ -14,15 +14,6 @@ public static class SwaggerExtensions
                 Version = "v1"
             });
 
-            // Tenant Header
-            c.AddSecurityDefinition("TenantHeader", new OpenApiSecurityScheme
-            {
-                Name = "X-Tenant-Id",
-                Type = SecuritySchemeType.ApiKey,
-                In = ParameterLocation.Header,
-                Description = "Tenant Id (GUID)"
-            });
-
             // Bearer JWT
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
@@ -31,23 +22,12 @@ public static class SwaggerExtensions
                 Scheme = "bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
-                Description = "Enter JWT token. Example: Bearer {your_token}"
+                Description = "Paste token like: Bearer {your_token}"
             });
 
-            // Require both (Swagger will send both if you fill both)
+            // Require Bearer for secured endpoints
             c.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "TenantHeader"
-                        }
-                    },
-                    Array.Empty<string>()
-                },
                 {
                     new OpenApiSecurityScheme
                     {

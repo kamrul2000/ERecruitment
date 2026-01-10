@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using ERecruitment.Infrastructure.Tenancy;
 
 namespace ERecruitment.API.Middleware;
@@ -9,29 +8,20 @@ public sealed class TenantResolutionMiddleware : IMiddleware
     {
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-        // Allow swagger and tenant creation without tenant header/token
-        if (path.StartsWith("/swagger") || path.StartsWith("/api/tenants"))
+        // Allow swagger + auth + tenants without tenant context
+        if (path.StartsWith("/swagger") || path.StartsWith("/api/auth") || path.StartsWith("/api/tenants"))
             return next(context);
 
-        var provider = context.RequestServices.GetRequiredService<TenantProvider>();
+        var tenantClaim = context.User?.FindFirst("tenantId")?.Value;
 
-        // 1) Try tenantId from JWT claim (after authentication)
-        var claimTenant = context.User?.FindFirst("tenantId")?.Value;
-        if (!string.IsNullOrWhiteSpace(claimTenant) && Guid.TryParse(claimTenant, out var jwtTenantId))
+        if (!string.IsNullOrWhiteSpace(tenantClaim) && Guid.TryParse(tenantClaim, out var tenantId))
         {
-            provider.SetTenant(jwtTenantId);
+            var provider = context.RequestServices.GetRequiredService<TenantProvider>();
+            provider.SetTenant(tenantId);
             return next(context);
         }
 
-        // 2) Fallback: header (for login/register/dev)
-        if (context.Request.Headers.TryGetValue("X-Tenant-Id", out var tenantHeader) &&
-            Guid.TryParse(tenantHeader.ToString(), out var headerTenantId))
-        {
-            provider.SetTenant(headerTenantId);
-            return next(context);
-        }
-
-        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-        return context.Response.WriteAsync("Missing tenant. Provide JWT with tenantId claim or X-Tenant-Id header.");
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return context.Response.WriteAsync("Missing tenantId claim. Login required.");
     }
 }
