@@ -31,6 +31,14 @@ public sealed class CandidatesController : ControllerBase
                 TenantId = x.TenantId,
                 FullName = x.FullName,
                 Email = x.Email,
+                Phone = x.Phone,
+                ExpectedSalary = x.ExpectedSalary,
+                    ResumeFileName = x.ResumeFileName,
+                    ResumeContentType = x.ResumeContentType,
+                    ResumeSize = x.ResumeSize,
+                    ResumeUrl = x.ResumeUrl,
+                    NoOfYearExperience = x.NoOfYearExperience,
+
                 CreatedAt = x.CreatedAt,
                 UpdatedAt = x.UpdatedAt
             })

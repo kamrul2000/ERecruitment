@@ -41,6 +41,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", p =>
+        p.WithOrigins("http://localhost:4200")
+         .AllowAnyHeader()
+         .AllowAnyMethod());
+});
+
 
 var app = builder.Build();
 
@@ -50,11 +58,12 @@ app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERecruitmen
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseCors("AllowAngular");   
+
 app.UseAuthentication();
-// Tenant resolution middleware
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-
 app.MapControllers();
+
 app.Run();
