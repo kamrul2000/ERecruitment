@@ -6,6 +6,7 @@ public sealed class CandidateResponse
     public Guid TenantId { get; set; }
     public string FullName { get; set; } = default!;
     public string Email { get; set; } = default!;
+    public string AddressLine { get; set; } = default!;
 
     public string Phone { get; set; } = default;
     public int? NoOfYearExperience { get; set; }
@@ -14,7 +15,8 @@ public sealed class CandidateResponse
     public string? ResumeContentType { get; set; }
     public long? ResumeSize { get; set; }
     public string? ResumeUrl { get; set; }
-
+    public string InstituteName { get; set; } = default!;
+    public string Subject { get; set; } = default!;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
