@@ -1,12 +1,13 @@
 using ERecruitment.API;
 using ERecruitment.API.Extensions;
 using ERecruitment.API.Middleware;
+using ERecruitment.API.Security;
+using ERecruitment.Application.Abstractions;
 using ERecruitment.Infrastructure.DependencyInjection;
 using ERecruitment.Infrastructure.Tenancy;
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using ERecruitment.API.Security;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Tenant provider for middleware
 builder.Services.AddScoped<TenantProvider>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<ITenantContext, TenantContext>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
