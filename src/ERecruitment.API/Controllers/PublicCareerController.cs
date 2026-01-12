@@ -15,13 +15,16 @@ public sealed class PublicCareerController : ControllerBase
     private readonly IApplicationDbContext _db;
     private readonly ITenantContext _tenant;
     private readonly TenantProvider _tenantProvider;
+    private readonly IEmailNotificationService _emailNotifications;
 
 
-    public PublicCareerController(IApplicationDbContext db, ITenantContext tenant, TenantProvider tenantProvider)
+
+    public PublicCareerController(IApplicationDbContext db, ITenantContext tenant, TenantProvider tenantProvider, IEmailNotificationService emailNotifications)
     {
         _db = db;
         _tenant = tenant;
         _tenantProvider = tenantProvider;
+        _emailNotifications = emailNotifications;
     }
 
     // GET: api/public/{tenantSlug}/jobs
@@ -300,6 +303,7 @@ public sealed class PublicCareerController : ControllerBase
             };
             _db.Candidates.Add(candidate);
             await _db.SaveChangesAsync(ct);
+
         }
         else
         {
@@ -348,6 +352,7 @@ public sealed class PublicCareerController : ControllerBase
 
         _db.JobApplications.Add(app);
         await _db.SaveChangesAsync(ct);
+        await _emailNotifications.SendApplicationReceivedAsync(app.Id, ct);
 
         return Ok(new
         {

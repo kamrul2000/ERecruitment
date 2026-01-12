@@ -14,10 +14,12 @@ namespace ERecruitment.API.Controllers;
 public sealed class ApplicationsController : ControllerBase
 {
     private readonly IApplicationDbContext _db;
+    private readonly IEmailNotificationService _emailNotifications;
 
-    public ApplicationsController(IApplicationDbContext db)
+    public ApplicationsController(IApplicationDbContext db, IEmailNotificationService emailNotifications)
     {
         _db = db;
+        _emailNotifications = emailNotifications;
     }
 
     [HttpGet]
@@ -151,6 +153,8 @@ public sealed class ApplicationsController : ControllerBase
         _db.JobApplicationStatusHistories.Add(history);
 
         await _db.SaveChangesAsync(ct);
+        await _emailNotifications.SendApplicationReceivedAsync(app.Id, ct);
+
         return NoContent();
     }
 

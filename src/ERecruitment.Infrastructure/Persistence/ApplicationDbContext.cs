@@ -31,6 +31,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<TenantSettings> TenantSettings { get; set; }
     public DbSet<PipelineStage> PipelineStages { get; set; }
     public DbSet<EmailTemplate> EmailTemplates { get; set; }
+    public DbSet<EmailLog> EmailLogs { get; set; }
 
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
     //IQueryable<Candidate> IApplicationDbContext.Candidates => Candidates.AsQueryable();

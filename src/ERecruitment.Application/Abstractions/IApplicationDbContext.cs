@@ -23,6 +23,8 @@ namespace ERecruitment.Application.Abstractions
         DbSet<PipelineStage> PipelineStages { get; }
         DbSet<EmailTemplate> EmailTemplates { get; }
 
+        DbSet<EmailLog> EmailLogs { get; set; }
+
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

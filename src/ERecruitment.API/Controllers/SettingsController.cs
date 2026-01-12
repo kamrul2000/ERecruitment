@@ -85,6 +85,56 @@ public sealed class SettingsController : ControllerBase
                 IsEnabled = x.IsEnabled
             })
             .ToListAsync(ct);
+        // seed default email templates if none
+        if (templates.Count == 0)
+        {
+            _db.EmailTemplates.AddRange(
+                new EmailTemplate
+                {
+                    TemplateType = "ApplicationReceived",
+                    Subject = "We received your application for {JobTitle}",
+                    Body =
+        @"Hi {CandidateName},
+
+Thanks for applying to {JobTitle} at {CompanyName}.
+We will review your application and update you soon.
+
+Regards,
+{CompanyName}",
+                    IsEnabled = true
+                },
+                new EmailTemplate
+                {
+                    TemplateType = "StatusChanged",
+                    Subject = "Update: {JobTitle} application status is now {Status}",
+                    Body =
+        @"Hi {CandidateName},
+
+Your application for {JobTitle} is now: {Status}.
+Notes: {Notes}
+
+Regards,
+{CompanyName}",
+                    IsEnabled = true
+                }
+            );
+
+            await _db.SaveChangesAsync(ct);
+
+            // reload after insert
+            templates = await _db.EmailTemplates
+                .AsNoTracking()
+                .OrderBy(x => x.TemplateType)
+                .Select(x => new EmailTemplateDto
+                {
+                    Id = x.Id,
+                    TemplateType = x.TemplateType,
+                    Subject = x.Subject,
+                    Body = x.Body,
+                    IsEnabled = x.IsEnabled
+                })
+                .ToListAsync(ct);
+        }
 
         return Ok(new
         {

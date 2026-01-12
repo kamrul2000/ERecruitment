@@ -8,7 +8,9 @@ using ERecruitment.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-
+using ERecruitment.Application.Abstractions;
+using ERecruitment.Infrastructure.Email;
+using ERecruitment.Domain.Entities;
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers & Swagger
@@ -24,6 +26,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<TenantProvider>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
