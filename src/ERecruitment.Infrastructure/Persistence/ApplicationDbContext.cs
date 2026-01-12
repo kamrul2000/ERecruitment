@@ -28,6 +28,9 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<JobApplicationStatusHistory> JobApplicationStatusHistories { get; set; }
     public DbSet<AppUser>Users { get; set; }
 
+    public DbSet<TenantSettings> TenantSettings { get; set; }
+    public DbSet<PipelineStage> PipelineStages { get; set; }
+    public DbSet<EmailTemplate> EmailTemplates { get; set; }
 
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
     //IQueryable<Candidate> IApplicationDbContext.Candidates => Candidates.AsQueryable();
@@ -103,6 +106,18 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<AppUser>()
     .HasIndex(x => new { x.TenantId, x.Email })
     .IsUnique();
+
+        modelBuilder.Entity<TenantSettings>()
+    .HasIndex(x => x.TenantId)
+    .IsUnique();
+
+        modelBuilder.Entity<PipelineStage>()
+            .HasIndex(x => new { x.TenantId, x.Key })
+            .IsUnique();
+
+        modelBuilder.Entity<EmailTemplate>()
+            .HasIndex(x => new { x.TenantId, x.TemplateType })
+            .IsUnique();
 
 
     }

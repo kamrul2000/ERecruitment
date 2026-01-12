@@ -19,6 +19,9 @@ namespace ERecruitment.Application.Abstractions
         DbSet<Tenant> Tenants { get; }
         DbSet<JobApplicationStatusHistory> JobApplicationStatusHistories { get; }
         DbSet<AppUser> Users { get; }
+        DbSet<TenantSettings> TenantSettings { get; }
+        DbSet<PipelineStage> PipelineStages { get; }
+        DbSet<EmailTemplate> EmailTemplates { get; }
 
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
