@@ -24,6 +24,12 @@ namespace ERecruitment.Application.Abstractions
         DbSet<EmailTemplate> EmailTemplates { get; }
 
         DbSet<EmailLog> EmailLogs { get; set; }
+        DbSet<AuditLog> AuditLogs { get; }
+
+        DbSet<InterviewRound> InterviewRounds { get; }
+        DbSet<Interview> Interviews { get; }
+        DbSet<InterviewParticipant> InterviewParticipants { get; }
+        DbSet<InterviewFeedback> InterviewFeedbacks { get; }
 
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

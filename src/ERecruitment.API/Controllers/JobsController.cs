@@ -12,10 +12,12 @@ namespace ERecruitment.API.Controllers;
 public sealed class JobsController : ControllerBase
 {
     private readonly IApplicationDbContext _db;
+    private readonly IAuditLogger _audit;
 
-    public JobsController(IApplicationDbContext db)
+    public JobsController(IApplicationDbContext db, IAuditLogger audit)
     {
         _db = db;
+        _audit = audit;
     }
 
     [HttpGet]
@@ -59,6 +61,7 @@ public sealed class JobsController : ControllerBase
 
         _db.JobPostings.Add(job);
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync("Job.Created", "JobPosting", job.Id, $"Created job: {job.Title}", new { job.Id, job.Title }, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = job.Id }, job);
     }

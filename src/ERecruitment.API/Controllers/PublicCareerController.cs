@@ -16,15 +16,17 @@ public sealed class PublicCareerController : ControllerBase
     private readonly ITenantContext _tenant;
     private readonly TenantProvider _tenantProvider;
     private readonly IEmailNotificationService _emailNotifications;
+    private readonly IAuditLogger _audit;
 
 
 
-    public PublicCareerController(IApplicationDbContext db, ITenantContext tenant, TenantProvider tenantProvider, IEmailNotificationService emailNotifications)
+    public PublicCareerController(IApplicationDbContext db, ITenantContext tenant, TenantProvider tenantProvider, IEmailNotificationService emailNotifications, IAuditLogger audit)
     {
         _db = db;
         _tenant = tenant;
         _tenantProvider = tenantProvider;
         _emailNotifications = emailNotifications;
+        _audit = audit;
     }
 
     // GET: api/public/{tenantSlug}/jobs
@@ -353,6 +355,21 @@ public sealed class PublicCareerController : ControllerBase
         _db.JobApplications.Add(app);
         await _db.SaveChangesAsync(ct);
         await _emailNotifications.SendApplicationReceivedAsync(app.Id, ct);
+        await _audit.LogAsync(
+    "Application.AppliedPublic",
+    "JobApplication",
+    app.Id,
+    summary: $"Public apply: {candidate.Email}",
+    data: new
+    {
+        ApplicationId = app.Id,
+        CandidateEmail = candidate.Email,
+        JobId = job.Id,
+        JobTitle = job.Title
+    },
+    ct: ct);
+
+
 
         return Ok(new
         {

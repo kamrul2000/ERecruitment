@@ -33,6 +33,13 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<EmailTemplate> EmailTemplates { get; set; }
     public DbSet<EmailLog> EmailLogs { get; set; }
 
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<InterviewRound> InterviewRounds => Set<InterviewRound>();
+    public DbSet<Interview> Interviews => Set<Interview>();
+    public DbSet<InterviewParticipant> InterviewParticipants => Set<InterviewParticipant>();
+    public DbSet<InterviewFeedback> InterviewFeedbacks => Set<InterviewFeedback>();
+
+
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
     //IQueryable<Candidate> IApplicationDbContext.Candidates => Candidates.AsQueryable();
     //IQueryable<JobApplication> IApplicationDbContext.JobApplications => JobApplications.AsQueryable();
@@ -118,6 +125,24 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
 
         modelBuilder.Entity<EmailTemplate>()
             .HasIndex(x => new { x.TenantId, x.TemplateType })
+            .IsUnique();
+        modelBuilder.Entity<AuditLog>()
+    .HasIndex(x => new { x.TenantId, x.CreatedAt });
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(x => new { x.TenantId, x.EntityType, x.EntityId });
+        modelBuilder.Entity<InterviewRound>()
+    .HasIndex(x => new { x.TenantId, x.JobApplicationId, x.SortOrder });
+
+        modelBuilder.Entity<Interview>()
+            .HasIndex(x => new { x.TenantId, x.JobApplicationId, x.StartsAtUtc });
+
+        modelBuilder.Entity<InterviewParticipant>()
+            .HasIndex(x => new { x.TenantId, x.InterviewId, x.UserId })
+            .IsUnique();
+
+        modelBuilder.Entity<InterviewFeedback>()
+            .HasIndex(x => new { x.TenantId, x.InterviewId, x.ReviewerUserId })
             .IsUnique();
 
 

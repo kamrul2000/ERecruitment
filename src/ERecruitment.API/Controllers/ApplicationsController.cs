@@ -15,11 +15,13 @@ public sealed class ApplicationsController : ControllerBase
 {
     private readonly IApplicationDbContext _db;
     private readonly IEmailNotificationService _emailNotifications;
+    private readonly IAuditLogger _audit;
 
-    public ApplicationsController(IApplicationDbContext db, IEmailNotificationService emailNotifications)
+    public ApplicationsController(IApplicationDbContext db, IEmailNotificationService emailNotifications, IAuditLogger audit)
     {
         _db = db;
         _emailNotifications = emailNotifications;
+        _audit = audit;
     }
 
     [HttpGet]
@@ -154,6 +156,14 @@ public sealed class ApplicationsController : ControllerBase
 
         await _db.SaveChangesAsync(ct);
         await _emailNotifications.SendApplicationReceivedAsync(app.Id, ct);
+        await _audit.LogAsync(
+    action: "Application.StatusChanged",
+    entityType: "JobApplication",
+    entityId: app.Id,
+    summary: $"Status changed to {request.Status}",
+    data: new { app.Id, request.Status, request.Notes },
+    ct: ct);
+
 
         return NoContent();
     }

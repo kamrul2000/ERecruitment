@@ -18,6 +18,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerWithTenantAndBearer();
 builder.Services.AddScoped<TenantResolutionMiddleware>();
+builder.Services.AddHttpContextAccessor();
 
 // Infrastructure services (DbContext, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -29,6 +30,8 @@ builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+builder.Services.AddScoped<ICurrentUser, ERecruitment.Infrastructure.Auth.CurrentUser>();
+builder.Services.AddScoped<IAuditLogger, ERecruitment.Infrastructure.Auditing.AuditLogger>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

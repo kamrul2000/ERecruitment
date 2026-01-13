@@ -17,6 +17,9 @@
     </PackageReference>
 	  <PackageReference Include="MimeKit" Version="4.14.0" />
   </ItemGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>

@@ -15,12 +15,14 @@ public sealed class UsersController : ControllerBase
 {
     private readonly IApplicationDbContext _db;
     private readonly PasswordHasher<AppUser> _hasher = new();
+    private readonly IAuditLogger _audit;
 
     private static readonly string[] AllowedRoles = ["Admin", "Recruiter", "HiringManager"];
 
-    public UsersController(IApplicationDbContext db)
+    public UsersController(IApplicationDbContext db, IAuditLogger audit)
     {
         _db = db;
+        _audit = audit;
     }
 
     // GET: api/users
@@ -174,6 +176,8 @@ public sealed class UsersController : ControllerBase
 
         user.IsActive = !user.IsActive;
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync("User.ToggledActive", "AppUser", user.Id, $"User active={user.IsActive}", new { user.Id, user.IsActive }, ct);
+
         return NoContent();
     }
 
