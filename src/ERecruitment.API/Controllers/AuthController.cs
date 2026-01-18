@@ -105,5 +105,33 @@ public sealed class AuthController : ControllerBase
             tenant = new { tenant.Id, tenant.Name, tenant.Slug }
         });
     }
+    [HttpPost("superadmin/login")]
+    public async Task<IActionResult> SuperAdminLogin([FromBody] SuperAdminLoginRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email)) return BadRequest("Email required");
+        if (string.IsNullOrWhiteSpace(request.Password)) return BadRequest("Password required");
+
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        var user = await _db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.TenantId == null && x.Email == email, ct);
+
+        if (user is null) return Unauthorized("Invalid credentials.");
+        if (!user.IsActive) return Unauthorized("User is inactive.");
+        if (user.Role != "SuperAdmin") return Unauthorized("Not a SuperAdmin.");
+
+        var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        if (result == PasswordVerificationResult.Failed)
+            return Unauthorized("Invalid credentials.");
+
+        var token = _jwt.CreateToken(user);
+
+        return Ok(new
+        {
+            accessToken = token,
+            user = new { user.Id, user.FullName, user.Email, user.Role, user.TenantId }
+        });
+    }
 
 }

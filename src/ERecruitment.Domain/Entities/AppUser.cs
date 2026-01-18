@@ -2,16 +2,13 @@
 
 namespace ERecruitment.Domain.Entities;
 
-public class AppUser : BaseEntity
+public sealed class AppUser : AuditableEntity
 {
+    public Guid? TenantId { get; set; } // ✅ nullable so SuperAdmin can be null
+
     public string FullName { get; set; } = default!;
     public string Email { get; set; } = default!;
-
-    // Hashed password (never store plain password)
     public string PasswordHash { get; set; } = default!;
-
-    // "Admin" | "Recruiter" | "HiringManager"
-    public string Role { get; set; } = "Recruiter";
-
+    public string Role { get; set; } = "Admin";  // Admin/Recruiter/HiringManager/SuperAdmin
     public bool IsActive { get; set; } = true;
 }

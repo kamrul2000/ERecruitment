@@ -32,6 +32,8 @@ public sealed class JwtTokenService
             new(ClaimTypes.Role, user.Role),
             new("fullName", user.FullName)
         };
+        if (user.TenantId.HasValue)
+            claims.Add(new Claim("tenantId", user.TenantId.Value.ToString()));
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);

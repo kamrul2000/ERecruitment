@@ -61,6 +61,7 @@ builder.Services.AddCors(options =>
 
 
 var app = builder.Build();
+await ERecruitment.Infrastructure.Seeding.SeedData.SeedSuperAdminAsync(app);
 
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERecruitment API v1"));

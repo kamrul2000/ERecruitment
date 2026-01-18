@@ -144,6 +144,12 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<InterviewFeedback>()
             .HasIndex(x => new { x.TenantId, x.InterviewId, x.ReviewerUserId })
             .IsUnique();
+        modelBuilder.Entity<AppUser>()
+            .HasIndex(x => x.Email);
+
+        modelBuilder.Entity<AppUser>()
+            .HasIndex(x => new { x.TenantId, x.Email })
+            .IsUnique(false); // you can make unique per-tenant later
 
 
     }

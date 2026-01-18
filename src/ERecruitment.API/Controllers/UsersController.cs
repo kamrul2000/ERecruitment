@@ -35,7 +35,7 @@ public sealed class UsersController : ControllerBase
             .Select(x => new UserResponse
             {
                 Id = x.Id,
-                TenantId = x.TenantId,
+                TenantId = x.TenantId ?? Guid.Empty,
                 FullName = x.FullName,
                 Email = x.Email,
                 Role = x.Role,
@@ -58,7 +58,7 @@ public sealed class UsersController : ControllerBase
             .Select(x => new UserResponse
             {
                 Id = x.Id,
-                TenantId = x.TenantId,
+                TenantId = x.TenantId ?? Guid.Empty,
                 FullName = x.FullName,
                 Email = x.Email,
                 Role = x.Role,
@@ -105,7 +105,7 @@ public sealed class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, new UserResponse
         {
             Id = user.Id,
-            TenantId = user.TenantId,
+            TenantId = user.TenantId ?? Guid.Empty,
             FullName = user.FullName,
             Email = user.Email,
             Role = user.Role,
