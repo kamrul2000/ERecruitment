@@ -150,29 +150,22 @@ public sealed class InterviewsController : ControllerBase
         await _audit.LogAsync("Interview.Completed", "Interview", interview.Id, "Completed interview", new { interview.Id }, ct);
         return NoContent();
     }
-
     [HttpPut("{id:guid}/feedback")]
     [Authorize(Roles = "Admin,Interviewer")]
     public async Task<IActionResult> SubmitFeedback(
-    Guid id,
-    [FromBody] SubmitFeedbackRequest req,
-    CancellationToken ct)
+        Guid id,
+        [FromBody] SubmitFeedbackRequest req,
+        CancellationToken ct)
     {
-        // reviewer = current user
-        var sub = User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(sub, out var reviewerId))
-            return Unauthorized();
+        var subClaim = User.FindFirst("sub")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        var interview = await _db.Interviews
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        if (interview is null)
-            return NotFound();
+        if (string.IsNullOrWhiteSpace(subClaim) || !Guid.TryParse(subClaim, out var reviewerId))
+            return Unauthorized("Missing or invalid user claim.");
 
         var isAdmin = User.IsInRole("Admin");
 
-        // interviewer must be participant, admin bypasses
+        // Only non-admins must be interview participants
         if (!isAdmin)
         {
             var isParticipant = await _db.InterviewParticipants
@@ -183,12 +176,9 @@ public sealed class InterviewsController : ControllerBase
         }
 
         var feedback = await _db.InterviewFeedbacks
-            .FirstOrDefaultAsync(x =>
-                x.InterviewId == id &&
-                x.ReviewerUserId == reviewerId,
-                ct);
+            .FirstOrDefaultAsync(f => f.InterviewId == id && f.ReviewerUserId == reviewerId, ct);
 
-        if (feedback is null)
+        if (feedback == null)
         {
             feedback = new InterviewFeedback
             {
@@ -199,9 +189,7 @@ public sealed class InterviewsController : ControllerBase
         }
 
         feedback.Rating = Math.Clamp(req.Rating, 1, 5);
-        feedback.Decision = string.IsNullOrWhiteSpace(req.Decision)
-            ? "Hire"
-            : req.Decision.Trim();
+        feedback.Decision = string.IsNullOrWhiteSpace(req.Decision) ? "Hire" : req.Decision.Trim();
         feedback.Comments = req.Comments;
         feedback.IsSubmitted = req.IsSubmitted;
 
@@ -218,5 +206,7 @@ public sealed class InterviewsController : ControllerBase
 
         return NoContent();
     }
+
+
 
 }

@@ -231,7 +231,7 @@ public sealed class ApplicationsController : ControllerBase
                 app.SalaryCurrency,
 
                 // CV snapshot
-                app.ResumeUrlSnapshot,
+                cand.ResumeUrl,
 
                 // Candidate info
                 CandidateName = cand.FullName,
@@ -328,6 +328,7 @@ public sealed class ApplicationsController : ControllerBase
                 app.CreatedAt,
                 app.ExpectedSalary,
                 app.SalaryCurrency,
+                cand.ResumeUrl,
                 app.ResumeUrlSnapshot
             };
 
