@@ -38,6 +38,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Interview> Interviews => Set<Interview>();
     public DbSet<InterviewParticipant> InterviewParticipants => Set<InterviewParticipant>();
     public DbSet<InterviewFeedback> InterviewFeedbacks => Set<InterviewFeedback>();
+    public DbSet<TenantThemeSettings> TenantThemeSettings => Set<TenantThemeSettings>();
 
 
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
@@ -150,6 +151,11 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<AppUser>()
             .HasIndex(x => new { x.TenantId, x.Email })
             .IsUnique(false); // you can make unique per-tenant later
+
+        modelBuilder.Entity<TenantThemeSettings>()
+    .HasIndex(x => x.TenantId)
+    .IsUnique();
+
 
 
     }

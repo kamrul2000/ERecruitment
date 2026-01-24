@@ -25,13 +25,14 @@ public sealed class JwtTokenService
         var minutes = int.Parse(jwt["AccessTokenMinutes"] ?? "120");
 
         var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new("tenantId", user.TenantId.ToString()),
-            new(ClaimTypes.Role, user.Role),
-            new("fullName", user.FullName)
-        };
+    {
+        new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new(JwtRegisteredClaimNames.Email, user.Email),
+        new(ClaimTypes.Role, user.Role),
+        new("fullName", user.FullName ?? "")
+    };
+
+        // ✅ add tenantId only if exists (and only once)
         if (user.TenantId.HasValue)
             claims.Add(new Claim("tenantId", user.TenantId.Value.ToString()));
 
@@ -48,4 +49,5 @@ public sealed class JwtTokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }

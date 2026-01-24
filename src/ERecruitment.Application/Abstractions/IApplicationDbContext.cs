@@ -30,6 +30,7 @@ namespace ERecruitment.Application.Abstractions
         DbSet<Interview> Interviews { get; }
         DbSet<InterviewParticipant> InterviewParticipants { get; }
         DbSet<InterviewFeedback> InterviewFeedbacks { get; }
+        DbSet<TenantThemeSettings> TenantThemeSettings { get; }
 
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

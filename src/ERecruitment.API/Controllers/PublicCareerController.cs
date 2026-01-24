@@ -377,6 +377,47 @@ public sealed class PublicCareerController : ControllerBase
             applicationId = app.Id
         });
     }
+
+    [HttpGet("theme")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTheme(string tenantSlug, CancellationToken ct)
+    {
+        // Resolve tenant
+        var tenant = await _db.Tenants
+            .FirstOrDefaultAsync(t => t.Slug.ToLower() == tenantSlug.ToLower(), ct);
+
+        if (tenant == null)
+            return NotFound("Tenant not found");
+
+        // Get theme by TenantId
+        var theme = await _db.TenantThemeSettings
+            .FirstOrDefaultAsync(x => x.TenantId == tenant.Id, ct);
+
+        if (theme == null)
+        {
+            // fallback default theme
+            return Ok(new
+            {
+                CompanyName = tenant.Name,
+                PrimaryColor = "#1976d2",
+                SecondaryColor = "#9c27b0",
+                BackgroundColor = "#ffffff",
+                FontFamily = "Inter"
+            });
+        }
+
+        return Ok(new
+        {
+            theme.CompanyName,
+            theme.LogoUrl,
+            theme.FaviconUrl,
+            theme.PrimaryColor,
+            theme.SecondaryColor,
+            theme.BackgroundColor,
+            theme.FontFamily,
+            theme.CustomCss
+        });
+    }
 }
 public sealed class PublicApplyRequest
 {
