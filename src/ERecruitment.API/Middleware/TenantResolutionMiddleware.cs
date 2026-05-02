@@ -35,12 +35,13 @@ public sealed class TenantResolutionMiddleware : IMiddleware
             return;
         }
 
-        var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
-
-        // ✅ Allow swagger + auth + tenant endpoints without tenant context
-        if (path.StartsWith("/swagger") ||
-            path.StartsWith("/api/auth") ||
-            path.StartsWith("/api/tenants"))
+        // Allow swagger + auth + SaaS-tenant endpoints without tenant context.
+        // Use StartsWithSegments so "/api/tenants" matches /api/tenants and
+        // /api/tenants/<id>, but NOT /api/tenantsettings/...
+        var requestPath = context.Request.Path;
+        if (requestPath.StartsWithSegments("/swagger") ||
+            requestPath.StartsWithSegments("/api/auth") ||
+            requestPath.StartsWithSegments("/api/tenants"))
         {
             await next(context);
             return;

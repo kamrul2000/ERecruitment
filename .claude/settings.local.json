@@ -12,7 +12,11 @@
       "Bash(curl -sk -o /dev/null -w \"Status: %{http_code} \\(expect 404\\)\\\\n\" https://localhost:7289/api/public/nope/jobs/get-all)",
       "Bash(curl -sk -X POST -H \"Content-Type: application/json\" -d '{\"tenantSlug\":\"isotest\",\"email\":\"isoadmin@test.com\",\"password\":\"IsoAdmin@123\"}' https://localhost:7289/api/Auth/login)",
       "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d ERecruitmentDb -i /tmp/check.sql -W)",
-      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d ERecruitmentDb -Q \"SELECT Id, TenantId, CompanyName FROM TenantThemeSettings;\" -W)"
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d ERecruitmentDb -Q \"SELECT Id, TenantId, CompanyName FROM TenantThemeSettings;\" -W)",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/ERecruitment.API/ERecruitment.API.csproj --no-launch-profile --urls \"http://localhost:5263;https://localhost:7289\")",
+      "Bash(curl -sk -w \"\\\\nHTTP %{http_code}\\\\n\" https://localhost:7289/api/public/isotest/theme)",
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\\\\n\" https://localhost:7289/uploads/5c950f27-639c-4d6f-9201-f7ed46e93fa6/branding/logo.png)",
+      "Bash(curl -sk -w \"\\\\nHTTP %{http_code}\\\\n\" https://localhost:7289/api/public/strative/theme)"
     ]
   }
 }
