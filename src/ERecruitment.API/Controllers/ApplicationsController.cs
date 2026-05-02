@@ -1,5 +1,4 @@
 ﻿using ERecruitment.API.DTOs.Applications;
-using ERecruitment.API.DTOs.Applications;
 using ERecruitment.Application.Abstractions;
 using ERecruitment.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -16,12 +15,18 @@ public sealed class ApplicationsController : ControllerBase
     private readonly IApplicationDbContext _db;
     private readonly IEmailNotificationService _emailNotifications;
     private readonly IAuditLogger _audit;
+    private readonly ICurrentUser _currentUser;
 
-    public ApplicationsController(IApplicationDbContext db, IEmailNotificationService emailNotifications, IAuditLogger audit)
+    public ApplicationsController(
+        IApplicationDbContext db,
+        IEmailNotificationService emailNotifications,
+        IAuditLogger audit,
+        ICurrentUser currentUser)
     {
         _db = db;
         _emailNotifications = emailNotifications;
         _audit = audit;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
@@ -143,13 +148,14 @@ public sealed class ApplicationsController : ControllerBase
         app.Notes = request.Notes?.Trim();
 
         // Insert history record
+        var actor = _currentUser.Email ?? _currentUser.UserId?.ToString();
         var history = new JobApplicationStatusHistory
         {
             JobApplicationId = app.Id,
             FromStatus = oldStatus,
             ToStatus = newStatus,
             Comment = request.Notes?.Trim(),
-            ChangedBy = null // later set from JWT user
+            ChangedBy = actor
         };
 
         _db.JobApplicationStatusHistories.Add(history);

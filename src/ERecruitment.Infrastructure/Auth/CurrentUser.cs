@@ -18,12 +18,15 @@ public sealed class CurrentUser : ICurrentUser
     {
         get
         {
-            var sub = User?.FindFirst("sub")?.Value;
+            // Works whether the JWT handler kept "sub" or remapped it to NameIdentifier.
+            var sub = User?.FindFirst("sub")?.Value
+                   ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return Guid.TryParse(sub, out var id) ? id : null;
         }
     }
 
-    public string? Email => User?.FindFirst("email")?.Value;
+    public string? Email => User?.FindFirst("email")?.Value
+                         ?? User?.FindFirst(ClaimTypes.Email)?.Value;
 
     public string? Role => User?.FindFirst(ClaimTypes.Role)?.Value;
 

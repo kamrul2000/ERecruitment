@@ -40,8 +40,8 @@ public sealed class TenantsController : ControllerBase
                 t.BillingEmail,
 
                 Users = _db.Users.IgnoreQueryFilters().Count(u => u.TenantId == t.Id),
-                Jobs = _db.JobPostings.Count(j => j.TenantId == t.Id),
-                Applications = _db.JobApplications.Count(a => a.TenantId == t.Id)
+                Jobs = _db.JobPostings.IgnoreQueryFilters().Count(j => j.TenantId == t.Id),
+                Applications = _db.JobApplications.IgnoreQueryFilters().Count(a => a.TenantId == t.Id)
             })
             .ToListAsync(ct);
 

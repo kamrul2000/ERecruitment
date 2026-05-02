@@ -10,6 +10,7 @@ namespace ERecruitment.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Microsoft.AspNetCore.Authorization.AllowAnonymous]
 public sealed class AuthController : ControllerBase
 {
     private readonly IApplicationDbContext _db;

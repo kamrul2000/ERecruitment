@@ -7,11 +7,25 @@ using ERecruitment.Infrastructure.DependencyInjection;
 using ERecruitment.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using ERecruitment.Application.Abstractions;
 using ERecruitment.Infrastructure.Email;
 using ERecruitment.Domain.Entities;
 var builder = WebApplication.CreateBuilder(args);
+
+// Fail-fast on missing critical configuration. Real values must come from
+// User Secrets (dev) or environment variables (prod), never appsettings.json.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. " +
+        "Set it via 'dotnet user-secrets' (dev) or environment variables (prod).");
+
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
+    throw new InvalidOperationException(
+        "Jwt:Key must be configured and at least 32 characters. " +
+        "Set it via 'dotnet user-secrets set \"Jwt:Key\" \"<long-random-value>\"' or environment variables.");
 
 // Controllers & Swagger
 builder.Services.AddControllers();
@@ -33,10 +47,15 @@ builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>(
 builder.Services.AddScoped<ICurrentUser, ERecruitment.Infrastructure.Auth.CurrentUser>();
 builder.Services.AddScoped<IAuditLogger, ERecruitment.Infrastructure.Auditing.AuditLogger>();
 
+// Preserve JWT claim names ("sub", "email") instead of remapping them to legacy
+// schema URIs. ICurrentUser reads "sub" directly.
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var jwt = builder.Configuration.GetSection("Jwt");
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -46,11 +65,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!)),
+
+            NameClaimType = JwtRegisteredClaimNames.Sub,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
     });
 
-builder.Services.AddAuthorization();
+// Default deny: every endpoint requires an authenticated user unless it
+// explicitly opts out with [AllowAnonymous].
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", p =>

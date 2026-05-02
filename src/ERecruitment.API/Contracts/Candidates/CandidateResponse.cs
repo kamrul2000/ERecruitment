@@ -8,7 +8,7 @@ public sealed class CandidateResponse
     public string Email { get; set; } = default!;
     public string AddressLine { get; set; } = default!;
 
-    public string Phone { get; set; } = default;
+    public string Phone { get; set; } = default!;
     public int? NoOfYearExperience { get; set; }
     public decimal? ExpectedSalary { get; set; }
     public string? ResumeFileName { get; set; }

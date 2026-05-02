@@ -10,8 +10,12 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantProvider _tenantProvider;
 
-    // EF will parameterize this per request scope (because DbContext is scoped)
-    public Guid CurrentTenantId => _tenantProvider.GetTenantId();
+    // EF parameterizes this per request scope. When no tenant is set
+    // (e.g. SuperAdmin requests, or pre-auth requests), return Guid.Empty
+    // so tenant-filtered queries match no rows by default. SuperAdmin
+    // endpoints that need cross-tenant access must use IgnoreQueryFilters().
+    public Guid CurrentTenantId =>
+        _tenantProvider.HasTenant ? _tenantProvider.GetTenantId() : Guid.Empty;
 
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
@@ -55,6 +59,10 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(x => x.ExpectedSalary)
                   .HasPrecision(18, 2);
         });
+
+        modelBuilder.Entity<JobApplication>()
+            .Property(x => x.ExpectedSalary)
+            .HasPrecision(18, 2);
 
         // Apply global tenant filter to every entity that implements ITenantEntity
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
