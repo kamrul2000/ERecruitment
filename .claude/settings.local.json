@@ -10,7 +10,9 @@
       "Bash(curl -sk https://localhost:7289/api/public/strative/jobs/get-all)",
       "Bash(curl -sk -o /dev/null -w \"Status: %{http_code}\\\\n\" https://localhost:7289/api/public/strative/theme)",
       "Bash(curl -sk -o /dev/null -w \"Status: %{http_code} \\(expect 404\\)\\\\n\" https://localhost:7289/api/public/nope/jobs/get-all)",
-      "Bash(curl -sk -X POST -H \"Content-Type: application/json\" -d '{\"tenantSlug\":\"isotest\",\"email\":\"isoadmin@test.com\",\"password\":\"IsoAdmin@123\"}' https://localhost:7289/api/Auth/login)"
+      "Bash(curl -sk -X POST -H \"Content-Type: application/json\" -d '{\"tenantSlug\":\"isotest\",\"email\":\"isoadmin@test.com\",\"password\":\"IsoAdmin@123\"}' https://localhost:7289/api/Auth/login)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d ERecruitmentDb -i /tmp/check.sql -W)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d ERecruitmentDb -Q \"SELECT Id, TenantId, CompanyName FROM TenantThemeSettings;\" -W)"
     ]
   }
 }
