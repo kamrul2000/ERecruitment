@@ -33,6 +33,7 @@ namespace ERecruitment.Application.Abstractions
         DbSet<TenantThemeSettings> TenantThemeSettings { get; }
 
         DbSet<Offer> Offers { get; }
+        DbSet<ApplicationNote> ApplicationNotes { get; }
 
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
