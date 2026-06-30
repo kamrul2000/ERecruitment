@@ -74,7 +74,9 @@ The platform provides:
 
 | Careers listing | Job details & apply |
 |---|---|
-| ![Careers portal](docs/screenshots/public-careers.png) | ![Apply form](docs/screenshots/public-apply.png) |
+| <img width="1913" height="735" alt="image" src="https://github.com/user-attachments/assets/6a69dac3-9a06-4784-9b9f-ffa53baf4fcc" />
+ | <img width="1706" height="882" alt="image" src="https://github.com/user-attachments/assets/6984f16f-2298-4ec6-9e56-2859a138f975" />
+ |
 
 ---
 
