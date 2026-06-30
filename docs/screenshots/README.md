@@ -24,4 +24,5 @@ references these names, so once the files are here they render automatically on 
 
 Demo logins (dev):
 - **Tenant admin** — slug `acme`, `admin@acme.com` / `Admin@123`
+
 - **SuperAdmin** — `superadmin@erecruitment.com` / `SuperAdmin@123`
