@@ -23,6 +23,8 @@ The platform provides:
 
 ## Table of Contents
 
+- [📸 Screenshots](#-screenshots)
+
 1. [Overview](#1-overview)
 2. [Tech Stack](#2-tech-stack)
 3. [System Architecture](#3-system-architecture)
@@ -41,6 +43,32 @@ The platform provides:
 16. [Configuration Reference](#16-configuration-reference)
 17. [Troubleshooting](#17-troubleshooting)
 18. [Viva / Interview Q&A](#18-viva--interview-qa)
+
+---
+
+## 📸 Screenshots
+
+> Image files live in [`docs/screenshots/`](docs/screenshots/). Drop the PNGs there using the exact filenames below (see that folder's README for a capture guide) and they render here automatically.
+
+### Admin console
+
+| Login | Dashboard |
+|---|---|
+| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Candidates | Applications pipeline |
+|---|---|
+| ![Candidates](docs/screenshots/candidates.png) | ![Applications](docs/screenshots/applications.png) |
+
+| Application details — Interviews · Offer · Communication · Notes | Branding & live preview |
+|---|---|
+| ![Application details](docs/screenshots/application-details.png) | ![Branding](docs/screenshots/branding.png) |
+
+### Public careers portal (tenant‑branded)
+
+| Careers listing | Job details & apply |
+|---|---|
+| ![Careers portal](docs/screenshots/public-careers.png) | ![Apply form](docs/screenshots/public-apply.png) |
 
 ---
 
