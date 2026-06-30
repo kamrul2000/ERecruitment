@@ -54,7 +54,9 @@ The platform manages the full recruitment lifecycle for multiple companies (tena
 | **Job Posting** | Tenant Admins / Recruiters post jobs with status Draft / Published / Closed. Only Published jobs appear on the public portal. |
 | **Candidate Sourcing** | Internal candidates can be added by recruiters. External candidates apply via the public careers portal — a single multipart submission creates the candidate, uploads the CV, and creates the application. |
 | **Pipeline** | Each application moves through Submitted → Reviewed → Shortlisted → Hired (or Rejected). Every status change is appended to a status‑history table with the actor's email. |
-| **Interviews** | Recruiters schedule interview rounds and individual interviews; participants are assigned, and reviewers submit feedback (rating + decision). |
+| **Interviews** | Recruiters schedule interview rounds and individual interviews; they can reschedule/edit, send reminders, assign participants, and reviewers submit feedback (rating + decision). The candidate is emailed on schedule/reschedule/cancel/reminder. |
+| **Offers** | An offer is drafted, sent, and tracked (Accepted / Declined / Withdrawn). Accepting an offer auto‑advances the application to Hired. |
+| **Collaboration** | Recruiters/hiring managers leave internal notes and structured scorecards on an application, and send/track direct emails to the candidate (full communication history). |
 | **Branding** | Tenants customize their public portal: company name, logo, primary/secondary/background colors, font family, custom CSS. |
 | **Audit** | Significant actions (job created, application status change, public apply, etc.) are written to an audit log with actor, IP, user‑agent, and JSON snapshot. |
 
@@ -185,32 +187,51 @@ Authorization is enforced two ways:
 **Dashboard** — high‑level metrics: candidates, jobs by status, total applications, hires.
 
 **Candidates**
-- List, create, edit, delete
-- Upload candidate CV (server‑side validates type/size, stores under `wwwroot/uploads/{tenantId}/candidates/{candidateId}/`)
+- List (server‑side **paginated + searchable** — the endpoint never loads an unbounded result set), create, edit, delete
+- Upload candidate CV (server‑side validates type/size, stored under `wwwroot/uploads/{tenantId}/candidates/{candidateId}/`)
+- **CVs are served only through an authenticated, tenant‑scoped endpoint** (`GET /api/Candidates/{id}/resume/file`), never as anonymous static files
 
 **Jobs**
 - CRUD with status (Draft / Published / Closed)
+- List is server‑side **paginated + searchable**; a lightweight `stats` endpoint powers the dashboard status breakdown
 - Only Published jobs are visible on the public portal
 
 **Applications**
 - Global search + per‑job pipeline view
 - Filters: status, salary range, experience range, keyword (name / email / phone / job title)
 - Pagination + sort (date, salary, experience)
-- Status update with comment → appended to status‑history with the actor's email
+- Status update with comment → appended to status‑history with the actor's email (the candidate is emailed a **status‑changed** notice)
 - View full status history per application
-- Embedded interviews panel inside the application details dialog
+- Rich application workspace (details dialog) organised into tabs: **Overview · Interviews · Offer · Communication · Notes**
 
 **Interviews**
 - Create interview rounds per application (e.g. "Technical Round 1")
 - Schedule individual interviews under each round (date, duration, online/onsite, meeting link, participants)
+- **Reschedule / edit** an interview (time, duration, mode, location, link, notes, participants) — the candidate is re‑notified with the updated details
+- **Send a reminder** email on demand
 - Cancel / mark complete
 - Submit feedback per reviewer (rating + decision Hire / No Hire)
-- Email notifications to participants (configurable SMTP)
+- Candidate emails on schedule / reschedule / cancel / reminder (configurable SMTP), each recorded in the application's communication history
+
+**Offers**
+- Create a draft offer per application (position, salary + currency, start date, expiry, notes)
+- Lifecycle **Draft → Sent → Accepted / Declined / Withdrawn**, enforced by server‑side state guards
+- **Accepting an offer auto‑advances the application to Hired** (recorded in the status history)
+
+**Communication**
+- Send an ad‑hoc email to the candidate directly from the application
+- Full **communication history** per application — every email (auto status notices, interview notices, direct emails) with delivery status; failures are recorded with the error so nothing is silent
+
+**Notes & Scorecards**
+- Internal collaboration feed per application
+- Free‑text **notes** between recruiters / hiring managers
+- Structured **scorecards** (Technical / Communication / Culture‑fit, each 1–5, + a recommendation Strong Yes … Strong No)
+- Author attribution; deletion restricted to the author or an Admin
 
 **Settings**
 - Tenant settings (company name, primary color, file upload limits, allowed resume types)
 - Pipeline stages (default Submitted → Reviewed → Shortlisted → Rejected → Hired, customizable)
-- Email templates (auto‑seeded defaults that admins can edit)
+- Email templates — auto‑seeded **idempotently per type** (ApplicationReceived, StatusChanged, InterviewScheduled, InterviewCancelled, InterviewReminder), all editable by admins
 
 **Branding**
 - Logo upload (PNG/JPG/WEBP, stored at `wwwroot/uploads/{tenantId}/branding/logo.{ext}`)
@@ -354,6 +375,13 @@ The DB is created code‑first via EF Core migrations.
 | `InterviewParticipant` | One row per `(Interview, User)`. Unique. |
 | `InterviewFeedback` | One row per `(Interview, ReviewerUser)`. Rating + decision + comments. |
 
+**Offers & collaboration**
+
+| Entity | Notes |
+|---|---|
+| `Offer` | `JobApplicationId`, `CandidateId`, `JobPostingId`, `PositionTitle`, `Salary` + `SalaryCurrency`, `StartDate`, `ExpiresAt`, `Notes`, `Status` (Draft/Sent/Accepted/Declined/Withdrawn/Expired), `CreatedByEmail`, `SentAt`, `RespondedAt`, `ResponseNote`. Indexed on `(TenantId, JobApplicationId)`. |
+| `ApplicationNote` | Per‑application collaboration item. `Kind` (Note/Scorecard), `Body`, `AuthorUserId`/`AuthorEmail`; scorecards add `TechnicalScore`, `CommunicationScore`, `CultureFitScore` (1–5) + `Recommendation`. Indexed on `(TenantId, JobApplicationId, CreatedAt)`. |
+
 **Configuration**
 
 | Entity | Notes |
@@ -362,7 +390,7 @@ The DB is created code‑first via EF Core migrations.
 | `TenantThemeSettings` | Branding: logo URL, favicon URL, primary/secondary/background colors, font family, template, custom CSS. Unique on `TenantId`. |
 | `PipelineStage` | Customizable stages, unique `(TenantId, Key)`. |
 | `EmailTemplate` | Per `(TenantId, TemplateType)`, unique. |
-| `EmailLog` | History of sent emails. |
+| `EmailLog` | History of every sent email (`ToEmail`, `TemplateType`, `Subject`, `Body`, `Status`, `Error`, `RelatedId` = applicationId). Backs the per‑application **communication history**. |
 | `AuditLog` | Action, EntityType, EntityId, actor (UserId, Email, Role), Summary, DataJson, IpAddress, UserAgent. Indexed on `(TenantId, CreatedAt)` and `(TenantId, EntityType, EntityId)`. |
 
 ---
@@ -386,14 +414,17 @@ Base URL (dev): `https://localhost:7289`. Full schema is at `/swagger`.
 | PUT | `/api/Tenants/{id}/disable` | Sets `IsActive=false`. Disabled tenants reject logins and 404 the public portal. |
 | PUT | `/api/Tenants/{id}/enable` | Re‑enables. |
 
-### Candidates / Jobs / Applications / Interviews / Settings / Audit Logs / Users / TenantSettings (theme)
+### Candidates / Jobs / Applications / Interviews / Offers / Communications / Notes / Settings / Audit Logs / Users / TenantSettings (theme)
 See Swagger UI for full request/response shapes. Highlights:
 
-- **Candidates**: full CRUD, `POST /api/Candidates/{id}/resume` for CV upload (multipart, field `file`).
-- **Jobs**: full CRUD with role‑gated mutations (`Admin`/`Recruiter`).
-- **Applications**: list / by‑job / by‑candidate, `PUT {id}/status` (history + audit + email), `GET {id}/history`, `POST /api/Applications/search`, `POST /api/jobs/{jobId}/applications/search`.
-- **Interviews**: `GET get-by-application/{appId}` returns rounds + interviews + participants + feedback in one call. `createRound`, `createSchedule`, `{id}/cancel`, `{id}/complete`, `{id}/feedback`.
-- **Settings**: `GET get-all` auto‑seeds default pipeline stages and email templates.
+- **Candidates**: full CRUD; `GET /api/Candidates` is **paginated + searchable** (`?page=&pageSize=&search=`, returns `{ total, page, pageSize, items }`); `POST /api/Candidates/{id}/resume` for CV upload (multipart, field `file`); `GET /api/Candidates/{id}/resume/file` streams the CV (**authenticated, tenant‑scoped**).
+- **Jobs**: full CRUD with role‑gated mutations (`Admin`/`Recruiter`); `GET /api/Jobs` is paginated + searchable; `GET /api/Jobs/stats` returns the status breakdown for the dashboard.
+- **Applications**: list / by‑job / by‑candidate, `PUT {id}/status` (history + audit + **status‑changed email**), `GET {id}/history`, `POST /api/Applications/search`, `POST /api/jobs/{jobId}/applications/search`.
+- **Interviews**: `GET get-by-application/{appId}` returns rounds + interviews + participants + feedback in one call. `createRound`, `createSchedule`, `PUT {id}` (reschedule/edit), `PUT {id}/reminder`, `{id}/cancel`, `{id}/complete`, `{id}/feedback`. Schedule / reschedule / cancel / reminder email the candidate.
+- **Offers**: `GET get-by-application/{appId}`, `POST` (draft), `PUT {id}` (edit draft), `PUT {id}/send`, `PUT {id}/accept` (→ application Hired), `PUT {id}/decline`, `PUT {id}/withdraw` (Admin/Recruiter).
+- **Communications**: `GET get-by-application/{appId}` (email history), `POST send` (ad‑hoc email to the candidate, logged) (Admin/Recruiter).
+- **ApplicationNotes**: `GET get-by-application/{appId}`, `POST` (note or scorecard), `DELETE {id}` (author or Admin). Open to Admin/Recruiter/HiringManager.
+- **Settings**: `GET get-all` auto‑seeds default pipeline stages and email templates (idempotent per template type).
 - **TenantSettings/theme**: `GET`, `PUT`, `POST theme/logo` (multipart, field `file`).
 - **AuditLogs**: `POST search`, `GET {id}` (Admin only).
 - **Users**: list/create/update/reset‑password/toggle‑active/delete (Admin only).
@@ -417,6 +448,7 @@ See Swagger UI for full request/response shapes. Highlights:
 | **Tenant isolation** | EF Core global query filter on every `ITenantEntity`: `e.TenantId == CurrentTenantId`. SuperAdmin gets `Guid.Empty` (matches no rows) by default. Cross‑tenant SuperAdmin queries must opt in via `IgnoreQueryFilters()`. The `SaveChangesInterceptor` stamps `TenantId` on insert and prevents tenant changes on update. |
 | **Password storage** | ASP.NET `PasswordHasher<AppUser>` (PBKDF2 via Identity v3 format). |
 | **Public file uploads (CV)** | Server‑side validation: size ≤ 10 MB, content‑type whitelist (PDF, DOC, DOCX), **magic‑byte verification** (so a renamed file is rejected), random `Guid.N` filename to prevent path traversal and overwrite collisions. Saved under `wwwroot/uploads/{tenantId}/candidates/{candidateId}/`. |
+| **CV access control** | Resumes are **not** served as static files. Request‑blocking middleware (before `UseStaticFiles`) returns 404 for any `/uploads/**/candidates/**` URL; CVs are streamed only via the authenticated, tenant‑scoped `GET /api/Candidates/{id}/resume/file`. Tenant branding under `/uploads/**/branding/**` stays public. |
 | **Duplicate‑apply guard** | Public apply checks `(candidateId, jobPostingId)` and returns 409 if already applied. Backed by the unique index on `JobApplication`. |
 | **Tenant disable kill‑switch** | All public endpoints reject disabled tenants with 404. Tenant logins also fail closed. |
 | **Auditing** | `AuditLogger` writes `AuditLog` rows for status changes, user toggles, public applies, etc. — including actor user id, email, role, IP, user agent, JSON data snapshot. |
@@ -427,7 +459,6 @@ See Swagger UI for full request/response shapes. Highlights:
 ### Known limitations (documented honestly)
 
 - JWTs are stored in **localStorage** (XSS‑exfiltratable). HttpOnly‑cookie auth is a documented next step but not yet implemented.
-- `wwwroot/uploads/*` is served by `UseStaticFiles()` with **no auth check** — anyone with a guessed URL can fetch a resume. Authenticated file serving via a controller action is the planned next step.
 - No rate limiting on `/api/Auth/login` or `/api/public/*/apply` yet.
 - No CAPTCHA on the public apply endpoint.
 - No refresh tokens — when the access token expires, the user is redirected to login.
