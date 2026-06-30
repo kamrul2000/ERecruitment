@@ -43,6 +43,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<InterviewParticipant> InterviewParticipants => Set<InterviewParticipant>();
     public DbSet<InterviewFeedback> InterviewFeedbacks => Set<InterviewFeedback>();
     public DbSet<TenantThemeSettings> TenantThemeSettings => Set<TenantThemeSettings>();
+    public DbSet<Offer> Offers => Set<Offer>();
 
 
     //IQueryable<JobPosting> IApplicationDbContext.JobPostings => Jobs.AsQueryable();
@@ -163,6 +164,19 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<TenantThemeSettings>()
     .HasIndex(x => x.TenantId)
     .IsUnique();
+
+        modelBuilder.Entity<Offer>()
+            .Property(x => x.Salary)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Offer>()
+            .HasIndex(x => new { x.TenantId, x.JobApplicationId });
+
+        modelBuilder.Entity<Offer>()
+            .HasOne<JobApplication>()
+            .WithMany()
+            .HasForeignKey(x => x.JobApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
 
 
 
