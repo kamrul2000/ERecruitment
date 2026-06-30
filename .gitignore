@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 # QA documentation
 QA.md
+# Claude Code local config (should not be in the repo)
+.claude/
