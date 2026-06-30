@@ -6,4 +6,5 @@ public interface IEmailNotificationService
     Task SendStatusChangedAsync(Guid applicationId, string newStatus, string? notes, CancellationToken ct);
     Task SendInterviewScheduledAsync(Guid interviewId, CancellationToken ct);
     Task SendInterviewCancelledAsync(Guid interviewId, CancellationToken ct);
+    Task SendInterviewReminderAsync(Guid interviewId, CancellationToken ct);
 }

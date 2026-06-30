@@ -119,6 +119,54 @@ public sealed class InterviewsController : ControllerBase
         return Ok(new { interviewId = interview.Id });
     }
 
+    // PUT: api/interviews/{id} — reschedule / edit an interview (and its participants).
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Recruiter,HiringManager")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] ScheduleInterviewRequest req, CancellationToken ct)
+    {
+        var interview = await _db.Interviews.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (interview is null) return NotFound();
+        if (interview.Status is "Cancelled" or "Completed")
+            return BadRequest("Only an active interview can be edited.");
+
+        interview.StartsAtUtc = req.StartsAtUtc;
+        interview.DurationMinutes = req.DurationMinutes <= 0 ? interview.DurationMinutes : req.DurationMinutes;
+        interview.Mode = string.IsNullOrWhiteSpace(req.Mode) ? interview.Mode : req.Mode.Trim();
+        interview.Location = req.Location?.Trim();
+        interview.MeetingLink = req.MeetingLink?.Trim();
+        interview.Notes = req.Notes;
+
+        // Replace the participant list.
+        var existing = await _db.InterviewParticipants.Where(p => p.InterviewId == id).ToListAsync(ct);
+        _db.InterviewParticipants.RemoveRange(existing);
+        var ids = (req.ParticipantUserIds ?? new List<Guid>()).Distinct().ToList();
+        foreach (var uid in ids)
+            _db.InterviewParticipants.Add(new InterviewParticipant { InterviewId = id, UserId = uid, Role = "Interviewer" });
+
+        await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync("Interview.Rescheduled", "Interview", interview.Id,
+            $"Interview updated to {interview.StartsAtUtc:u}", new { interview.Id }, ct);
+
+        // Notify the candidate of the updated details.
+        await _email.SendInterviewScheduledAsync(interview.Id, ct);
+
+        return NoContent();
+    }
+
+    // PUT: api/interviews/{id}/reminder — email the candidate a reminder.
+    [HttpPut("{id:guid}/reminder")]
+    [Authorize(Roles = "Admin,Recruiter,HiringManager")]
+    public async Task<IActionResult> SendReminder(Guid id, CancellationToken ct)
+    {
+        var exists = await _db.Interviews.AnyAsync(x => x.Id == id, ct);
+        if (!exists) return NotFound();
+
+        await _email.SendInterviewReminderAsync(id, ct);
+        await _audit.LogAsync("Interview.ReminderSent", "Interview", id, "Sent interview reminder", new { id }, ct);
+        return NoContent();
+    }
+
     // PUT: api/interviews/{id}/cancel
     [HttpPut("{id:guid}/cancel")]
     [Authorize(Roles = "Admin,Recruiter,HiringManager")]

@@ -21,6 +21,7 @@ public sealed class EmailNotificationService : IEmailNotificationService
     private const string StatusChanged = "StatusChanged"; // generic
     private const string InterviewScheduled = "InterviewScheduled";
     private const string InterviewCancelled = "InterviewCancelled";
+    private const string InterviewReminder = "InterviewReminder";
     // Or per-status: Status.Shortlisted / Status.Rejected / Status.Hired...
 
     public async Task SendApplicationReceivedAsync(Guid applicationId, CancellationToken ct)
@@ -76,6 +77,20 @@ public sealed class EmailNotificationService : IEmailNotificationService
 
         await SendUsingTemplate(
             templateType: InterviewCancelled,
+            toEmail: v.CandidateEmail,
+            values: BuildInterviewValues(v),
+            relatedId: v.ApplicationId,
+            ct: ct
+        );
+    }
+
+    public async Task SendInterviewReminderAsync(Guid interviewId, CancellationToken ct)
+    {
+        var v = await LoadInterviewData(interviewId, ct);
+        if (v is null) return;
+
+        await SendUsingTemplate(
+            templateType: InterviewReminder,
             toEmail: v.CandidateEmail,
             values: BuildInterviewValues(v),
             relatedId: v.ApplicationId,

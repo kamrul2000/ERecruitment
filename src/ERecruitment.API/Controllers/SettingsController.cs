@@ -147,6 +147,23 @@ We will be in touch about next steps.
 Regards,
 {CompanyName}",
                 IsEnabled = true
+            },
+            new EmailTemplate
+            {
+                TemplateType = "InterviewReminder",
+                Subject = "Reminder: interview for {JobTitle} on {InterviewDate}",
+                Body =
+        @"Hi {CandidateName},
+
+This is a reminder of your upcoming interview for {JobTitle} at {CompanyName}.
+When: {InterviewDate}
+Mode: {Mode}
+Location: {Location}
+Meeting link: {MeetingLink}
+
+See you there!
+{CompanyName}",
+                IsEnabled = true
             }
         };
 
