@@ -16,7 +16,8 @@
       "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/ERecruitment.API/ERecruitment.API.csproj --no-launch-profile --urls \"http://localhost:5263;https://localhost:7289\")",
       "Bash(curl -sk -w \"\\\\nHTTP %{http_code}\\\\n\" https://localhost:7289/api/public/isotest/theme)",
       "Bash(curl -sk -o /dev/null -w \"%{http_code}\\\\n\" https://localhost:7289/uploads/5c950f27-639c-4d6f-9201-f7ed46e93fa6/branding/logo.png)",
-      "Bash(curl -sk -w \"\\\\nHTTP %{http_code}\\\\n\" https://localhost:7289/api/public/strative/theme)"
+      "Bash(curl -sk -w \"\\\\nHTTP %{http_code}\\\\n\" https://localhost:7289/api/public/strative/theme)",
+      "Bash(cd \"d:\\\\\\\\Kamrul\\\\\\\\Recruitment\")"
     ]
   }
 }

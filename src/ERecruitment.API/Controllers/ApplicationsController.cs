@@ -161,7 +161,9 @@ public sealed class ApplicationsController : ControllerBase
         _db.JobApplicationStatusHistories.Add(history);
 
         await _db.SaveChangesAsync(ct);
-        await _emailNotifications.SendApplicationReceivedAsync(app.Id, ct);
+        // Notify the candidate that their application status changed. (Previously this
+        // wrongly sent the "Application Received" template on every status change.)
+        await _emailNotifications.SendStatusChangedAsync(app.Id, newStatus, request.Notes?.Trim(), ct);
         await _audit.LogAsync(
     action: "Application.StatusChanged",
     entityType: "JobApplication",

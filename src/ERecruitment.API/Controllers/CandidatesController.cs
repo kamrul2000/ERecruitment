@@ -1,5 +1,6 @@
 using ERecruitment.API.Contracts.Candidates;
 using ERecruitment.API.DTOs.Candidates;
+using ERecruitment.API.Storage;
 using ERecruitment.Application.Abstractions;
 using ERecruitment.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -18,13 +19,38 @@ public sealed class CandidatesController : ControllerBase
         _db = db;
     }
 
-    // GET: api/candidates
+    // GET: api/candidates?page=&pageSize=&search=
+    // Paginated + server-side search so the endpoint can never load an unbounded
+    // result set. Returns { total, page, pageSize, items }.
     [HttpGet]
-    public async Task<ActionResult<List<CandidateResponse>>> GetAll(CancellationToken ct)
+    public async Task<IActionResult> GetAll(
+        CancellationToken ct,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null)
     {
-        var items = await _db.Candidates
-            .AsNoTracking()
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+        var query = _db.Candidates.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var k = search.Trim();
+            query = query.Where(x =>
+                EF.Functions.Like(x.FullName, $"%{k}%") ||
+                EF.Functions.Like(x.Email, $"%{k}%") ||
+                EF.Functions.Like(x.Phone, $"%{k}%") ||
+                EF.Functions.Like(x.AddressLine, $"%{k}%"));
+        }
+
+        var total = await query.CountAsync(ct);
+
+        var items = await query
             .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new CandidateResponse
             {
                 Id = x.Id,
@@ -40,14 +66,14 @@ public sealed class CandidatesController : ControllerBase
                 NoOfYearExperience = x.NoOfYearExperience,
                 InstituteName = x.InstituteName,
                 Subject = x.Subject,
-                AddressLine=x.AddressLine,
+                AddressLine = x.AddressLine,
 
                 CreatedAt = x.CreatedAt,
                 UpdatedAt = x.UpdatedAt
             })
             .ToListAsync(ct);
 
-        return Ok(items);
+        return Ok(new { total, page, pageSize, items });
     }
 
     // GET: api/candidates/{id}
@@ -230,6 +256,33 @@ public sealed class CandidatesController : ControllerBase
         await _db.SaveChangesAsync(ct);
 
         return Ok(new { candidate.Id, candidate.ResumeUrl });
+    }
+
+    // Streams a candidate's CV through an authenticated, tenant-scoped endpoint.
+    // The candidate query is tenant-filtered, so a caller from another tenant
+    // simply gets 404. This replaces the previous anonymous static-file access.
+    [HttpGet("{id:guid}/resume/file")]
+    public async Task<IActionResult> DownloadResume(Guid id, CancellationToken ct)
+    {
+        var candidate = await _db.Candidates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (candidate is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(candidate.ResumeFileName))
+            return NotFound("No resume on file.");
+
+        var path = ResumeFiles.Resolve(candidate.TenantId, candidate.Id, candidate.ResumeFileName);
+        if (path is null || !System.IO.File.Exists(path))
+            return NotFound("Resume file missing.");
+
+        var contentType = string.IsNullOrWhiteSpace(candidate.ResumeContentType)
+            ? "application/octet-stream"
+            : candidate.ResumeContentType;
+
+        var stream = System.IO.File.OpenRead(path);
+        // Inline disposition so PDFs preview in the browser; DOC/DOCX download.
+        return File(stream, contentType, candidate.ResumeFileName, enableRangeProcessing: true);
     }
 
 }

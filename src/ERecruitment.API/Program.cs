@@ -96,9 +96,28 @@ app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERecruitment API v1"));
 
 app.UseHttpsRedirection();
+
+// Candidate CVs live under wwwroot/uploads/**/candidates/** but must NEVER be
+// served as anonymous static files (that previously leaked resumes to anyone who
+// guessed a URL). They are streamed only via the authenticated, tenant-scoped
+// GET /api/Candidates/{id}/resume/file endpoint. Block any direct static hit on
+// that path; tenant branding (logos/favicons) under /branding/ stays public.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (path is not null
+        && path.Contains("/uploads/", StringComparison.OrdinalIgnoreCase)
+        && path.Contains("/candidates/", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 app.UseStaticFiles();
 
-app.UseCors("AllowAngular");   
+app.UseCors("AllowAngular");
 
 app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();

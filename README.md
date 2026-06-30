@@ -1,6 +1,17 @@
 # E‑Recruitment Platform
 
 A multi‑tenant SaaS recruitment / Applicant Tracking System (ATS). Built with **ASP.NET Core 8** + **Entity Framework Core** on the backend and **Angular 21** + **Angular Material** on the frontend.
+Use the right door
+To manage tenants (SuperAdmin): → http://localhost:4200/saas/login
+
+No slug. Just:
+Email: superadmin@erecruitment.com
+Password: SuperAdmin@123
+To log into the Acme company (tenant Admin): → http://localhost:4200/login
+
+Tenant slug: acme
+Email: admin@acme.com
+Password: Admin@123
 
 The platform provides:
 
@@ -427,7 +438,8 @@ See Swagger UI for full request/response shapes. Highlights:
 
 | Tool | Version |
 |---|---|
-| .NET SDK | 8.x |
+| .NET SDK | 8.x (a newer SDK such as 10.x also works **if** the .NET 8 runtime is installed) |
+| EF Core CLI (`dotnet-ef`) | latest — install with `dotnet tool install --global dotnet-ef` (needed to create the DB) |
 | SQL Server LocalDB (or a real SQL Server) | bundled with Visual Studio / SQL Server Express |
 | Node.js | 20.x or newer (npm 11.x) |
 | Angular CLI | optional (npm scripts work without it) |
@@ -471,7 +483,20 @@ dotnet user-secrets set "Smtp:FromName"  "ERecruitment"
 
 ### 12.3 Apply database migrations
 
-From the repo root:
+> ⚠️ **This step is mandatory and must be done before the first backend run.** The app does **not** auto‑migrate on startup. If the `ERecruitmentDb` database does not exist, the backend will build and connect, then **crash during startup** when the SuperAdmin seed step queries a non‑existent database — the API exits before binding its port.
+
+First install the EF Core CLI tool (one‑time, global). It's required for `dotnet ef`:
+
+```powershell
+dotnet tool install --global dotnet-ef        # idempotent; skip if already installed
+```
+
+> The global tool is installed to `%USERPROFILE%\.dotnet\tools`. If `dotnet ef` is "not found" right after install, that folder isn't on your `PATH` yet — open a new terminal, or prepend it for the current session:
+> ```powershell
+> $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+> ```
+
+Then, from the repo root, create/update the database:
 
 ```powershell
 dotnet ef database update `
@@ -479,12 +504,12 @@ dotnet ef database update `
   --startup-project src\ERecruitment.API
 ```
 
-This creates the `ERecruitmentDb` database and applies all migrations.
+This creates the `ERecruitmentDb` database and applies all migrations (it's idempotent — safe to re‑run; an up‑to‑date DB is a no‑op). Verify it worked: LocalDB should now contain `ERecruitmentDb` with ~17 tables.
 
 ### 12.4 Run the backend
 
 ```powershell
-dotnet run --project src\ERecruitment.API\ERecruitment.API.csproj
+dotnet run --project src\ERecruitment.API\ERecruitment.API.csproj --launch-profile https
 ```
 
 The API binds (by default) to:
@@ -493,6 +518,14 @@ The API binds (by default) to:
 - Swagger UI: `https://localhost:7289/swagger`
 
 The first run also seeds the SuperAdmin user via `SeedData.SeedSuperAdminAsync`.
+
+> **Note on the .NET SDK:** the projects target **`net8.0`**. A newer SDK (e.g. .NET 10) can still build and run them as long as the **.NET 8 runtime** is installed (`dotnet --list-runtimes` should list `Microsoft.AspNetCore.App 8.x`).
+
+> **Dev HTTPS certificate:** the Angular app calls `https://localhost:7289` from the browser, so the ASP.NET dev cert must be trusted, or API calls fail with a certificate error. Trust it once with:
+> ```powershell
+> dotnet dev-certs https --trust
+> ```
+> Check status anytime with `dotnet dev-certs https --check --trust`.
 
 ### 12.5 Run the frontend
 
@@ -674,6 +707,10 @@ CORS (in `Program.cs`) is open to `http://localhost:4200` only. Add production o
 |---|---|---|
 | API exits at startup with `Jwt:Key must be configured and at least 32 characters` | Missing JWT key in user‑secrets / env | `dotnet user-secrets set "Jwt:Key" "<long random>"` |
 | API exits with `ConnectionStrings:DefaultConnection is not configured` | Same — missing connection string secret | `dotnet user-secrets set "ConnectionStrings:DefaultConnection" "..."` |
+| Backend builds and runs the SuperAdmin seed query, then **exits immediately** (process dies, no port bound) | The `ERecruitmentDb` database doesn't exist yet — there is **no auto‑migrate** on startup | Run the migrations from step 12.3: `dotnet ef database update --project src\ERecruitment.Infrastructure --startup-project src\ERecruitment.API` |
+| `Hosting failed to start … Failed to bind to address https://127.0.0.1:7289: address already in use` (`SocketException 10048`) | Another instance of the API is already running on that port (e.g. a Visual Studio debug session **and** a `dotnet run` terminal) | You already have it running — use the existing one. Otherwise stop the stray process: `Get-NetTCPConnection -LocalPort 7289 -State Listen \| % { Stop-Process -Id $_.OwningProcess -Force }` |
+| `dotnet ef` is "not found" right after `dotnet tool install --global dotnet-ef` | The global tools folder isn't on `PATH` in the current shell | Open a new terminal, or run `$env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"` |
+| Browser blocks API calls with `NET::ERR_CERT_AUTHORITY_INVALID` / `ERR_CERT_*` against `https://localhost:7289` | The ASP.NET dev HTTPS certificate isn't trusted on this machine | `dotnet dev-certs https --trust` (then restart the browser) |
 | `dotnet ef` says "no migrations were applied" | DB already up to date | OK — nothing to do |
 | Frontend shows `401 Unauthorized` on every call after a JWT signing key change | Old token in `localStorage` was signed with a different key | Auth interceptor now auto‑clears on 401 and redirects to `/login`. Refresh once. |
 | Public page shows "Careers page not available" | Slug not recognized OR tenant disabled | Use the SuperAdmin SaaS console to enable the tenant, or check the slug spelling |
