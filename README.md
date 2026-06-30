@@ -54,15 +54,21 @@ The platform provides:
 
 | Login | Dashboard |
 |---|---|
-| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| <img width="1059" height="774" alt="image" src="https://github.com/user-attachments/assets/166f0060-31c3-45fd-853a-3443ee48d557" />
+ | <img width="1915" height="876" alt="image" src="https://github.com/user-attachments/assets/e48334c0-eb01-4ba4-adde-694c5a35e4bd" />
+ |
 
 | Candidates | Applications pipeline |
 |---|---|
-| ![Candidates](docs/screenshots/candidates.png) | ![Applications](docs/screenshots/applications.png) |
+| <img width="1916" height="719" alt="image" src="https://github.com/user-attachments/assets/469e9164-e5ad-43a7-b962-42158e6b6932" />
+ | !<img width="1919" height="757" alt="image" src="https://github.com/user-attachments/assets/53a75a08-3309-4fc1-8a12-eef08191813d" />
+ |
 
 | Application details — Interviews · Offer · Communication · Notes | Branding & live preview |
 |---|---|
-| ![Application details](docs/screenshots/application-details.png) | ![Branding](docs/screenshots/branding.png) |
+| <img width="1901" height="719" alt="image" src="https://github.com/user-attachments/assets/363185b2-246c-407e-8699-d33e7b21ff75" />
+ | <img width="1891" height="914" alt="image" src="https://github.com/user-attachments/assets/68ffa6e1-ed98-496d-b055-23f6a42422d1" />
+ |
 
 ### Public careers portal (tenant‑branded)
 
