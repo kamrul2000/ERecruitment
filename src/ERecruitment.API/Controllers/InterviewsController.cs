@@ -113,8 +113,8 @@ public sealed class InterviewsController : ControllerBase
         await _audit.LogAsync("Interview.Scheduled", "Interview", interview.Id,
             $"Scheduled interview at {interview.StartsAtUtc:u}", new { interview.Id, interview.JobApplicationId, interview.StartsAtUtc }, ct);
 
-        // Email (optional): SendInterviewInviteAsync (you add template type)
-        // await _email.SendInterviewScheduledAsync(interview.Id, ct);
+        // Notify the candidate (logged against the application's communication history).
+        await _email.SendInterviewScheduledAsync(interview.Id, ct);
 
         return Ok(new { interviewId = interview.Id });
     }
@@ -132,7 +132,7 @@ public sealed class InterviewsController : ControllerBase
 
         await _audit.LogAsync("Interview.Cancelled", "Interview", interview.Id, "Cancelled interview", new { interview.Id }, ct);
 
-        // await _email.SendInterviewCancelledAsync(interview.Id, ct);
+        await _email.SendInterviewCancelledAsync(interview.Id, ct);
         return NoContent();
     }
 

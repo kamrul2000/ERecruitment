@@ -85,15 +85,16 @@ public sealed class SettingsController : ControllerBase
                 IsEnabled = x.IsEnabled
             })
             .ToListAsync(ct);
-        // seed default email templates if none
-        if (templates.Count == 0)
+        // Ensure all default templates exist. Idempotent per template type, so newly
+        // introduced types (e.g. interview emails) get added even for existing tenants
+        // that already had the original templates.
+        var defaultTemplates = new[]
         {
-            _db.EmailTemplates.AddRange(
-                new EmailTemplate
-                {
-                    TemplateType = "ApplicationReceived",
-                    Subject = "We received your application for {JobTitle}",
-                    Body =
+            new EmailTemplate
+            {
+                TemplateType = "ApplicationReceived",
+                Subject = "We received your application for {JobTitle}",
+                Body =
         @"Hi {CandidateName},
 
 Thanks for applying to {JobTitle} at {CompanyName}.
@@ -101,13 +102,13 @@ We will review your application and update you soon.
 
 Regards,
 {CompanyName}",
-                    IsEnabled = true
-                },
-                new EmailTemplate
-                {
-                    TemplateType = "StatusChanged",
-                    Subject = "Update: {JobTitle} application status is now {Status}",
-                    Body =
+                IsEnabled = true
+            },
+            new EmailTemplate
+            {
+                TemplateType = "StatusChanged",
+                Subject = "Update: {JobTitle} application status is now {Status}",
+                Body =
         @"Hi {CandidateName},
 
 Your application for {JobTitle} is now: {Status}.
@@ -115,10 +116,45 @@ Notes: {Notes}
 
 Regards,
 {CompanyName}",
-                    IsEnabled = true
-                }
-            );
+                IsEnabled = true
+            },
+            new EmailTemplate
+            {
+                TemplateType = "InterviewScheduled",
+                Subject = "Interview scheduled for {JobTitle}",
+                Body =
+        @"Hi {CandidateName},
 
+Your interview for {JobTitle} at {CompanyName} is scheduled for {InterviewDate}.
+Mode: {Mode}
+Location: {Location}
+Meeting link: {MeetingLink}
+
+Good luck!
+{CompanyName}",
+                IsEnabled = true
+            },
+            new EmailTemplate
+            {
+                TemplateType = "InterviewCancelled",
+                Subject = "Interview cancelled for {JobTitle}",
+                Body =
+        @"Hi {CandidateName},
+
+Your interview for {JobTitle} at {CompanyName} scheduled for {InterviewDate} has been cancelled.
+We will be in touch about next steps.
+
+Regards,
+{CompanyName}",
+                IsEnabled = true
+            }
+        };
+
+        var existingTypes = templates.Select(t => t.TemplateType).ToHashSet();
+        var toAdd = defaultTemplates.Where(d => !existingTypes.Contains(d.TemplateType)).ToList();
+        if (toAdd.Count > 0)
+        {
+            _db.EmailTemplates.AddRange(toAdd);
             await _db.SaveChangesAsync(ct);
 
             // reload after insert

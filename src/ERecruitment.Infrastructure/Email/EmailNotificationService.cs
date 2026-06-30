@@ -19,6 +19,8 @@ public sealed class EmailNotificationService : IEmailNotificationService
     // TemplateTypes (you can keep these as constants)
     private const string ApplicationReceived = "ApplicationReceived";
     private const string StatusChanged = "StatusChanged"; // generic
+    private const string InterviewScheduled = "InterviewScheduled";
+    private const string InterviewCancelled = "InterviewCancelled";
     // Or per-status: Status.Shortlisted / Status.Rejected / Status.Hired...
 
     public async Task SendApplicationReceivedAsync(Guid applicationId, CancellationToken ct)
@@ -51,6 +53,82 @@ public sealed class EmailNotificationService : IEmailNotificationService
 
         // Option 2 (advanced): per-status template (uncomment if you prefer)
         // await SendUsingTemplate($"Status.{newStatus}", app.CandidateEmail, BuildValues(app, newStatus, notes), applicationId, ct);
+    }
+
+    public async Task SendInterviewScheduledAsync(Guid interviewId, CancellationToken ct)
+    {
+        var v = await LoadInterviewData(interviewId, ct);
+        if (v is null) return;
+
+        await SendUsingTemplate(
+            templateType: InterviewScheduled,
+            toEmail: v.CandidateEmail,
+            values: BuildInterviewValues(v),
+            relatedId: v.ApplicationId, // ties the email to the application's history
+            ct: ct
+        );
+    }
+
+    public async Task SendInterviewCancelledAsync(Guid interviewId, CancellationToken ct)
+    {
+        var v = await LoadInterviewData(interviewId, ct);
+        if (v is null) return;
+
+        await SendUsingTemplate(
+            templateType: InterviewCancelled,
+            toEmail: v.CandidateEmail,
+            values: BuildInterviewValues(v),
+            relatedId: v.ApplicationId,
+            ct: ct
+        );
+    }
+
+    private static Dictionary<string, string> BuildInterviewValues(InterviewView v)
+    {
+        return new Dictionary<string, string>
+        {
+            ["CandidateName"] = v.CandidateName,
+            ["CandidateEmail"] = v.CandidateEmail,
+            ["JobTitle"] = v.JobTitle,
+            ["InterviewDate"] = v.StartsAtUtc.ToString("f"),
+            ["Mode"] = v.Mode ?? "",
+            ["Location"] = v.Location ?? "",
+            ["MeetingLink"] = v.MeetingLink ?? ""
+        };
+    }
+
+    private async Task<InterviewView?> LoadInterviewData(Guid interviewId, CancellationToken ct)
+    {
+        return await (
+            from i in _db.Interviews.AsNoTracking()
+            join a in _db.JobApplications.AsNoTracking() on i.JobApplicationId equals a.Id
+            join c in _db.Candidates.AsNoTracking() on a.CandidateId equals c.Id
+            join j in _db.JobPostings.AsNoTracking() on a.JobPostingId equals j.Id
+            where i.Id == interviewId
+            select new InterviewView
+            {
+                ApplicationId = a.Id,
+                CandidateName = c.FullName,
+                CandidateEmail = c.Email,
+                JobTitle = j.Title,
+                StartsAtUtc = i.StartsAtUtc,
+                Mode = i.Mode,
+                Location = i.Location,
+                MeetingLink = i.MeetingLink
+            }
+        ).FirstOrDefaultAsync(ct);
+    }
+
+    private sealed class InterviewView
+    {
+        public Guid ApplicationId { get; set; }
+        public string CandidateName { get; set; } = default!;
+        public string CandidateEmail { get; set; } = default!;
+        public string JobTitle { get; set; } = default!;
+        public DateTimeOffset StartsAtUtc { get; set; }
+        public string? Mode { get; set; }
+        public string? Location { get; set; }
+        public string? MeetingLink { get; set; }
     }
 
     private async Task SendUsingTemplate(
