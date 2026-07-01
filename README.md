@@ -48,35 +48,27 @@ The platform provides:
 
 ## 📸 Screenshots
 
-> Image files live in [`docs/screenshots/`](docs/screenshots/). Drop the PNGs there using the exact filenames below (see that folder's README for a capture guide) and they render here automatically.
+> A quick look at the redesigned UI (Clean Modern SaaS theme).
 
 ### Admin console
 
 | Login | Dashboard |
 |---|---|
-| <img width="1059" height="774" alt="image" src="https://github.com/user-attachments/assets/166f0060-31c3-45fd-853a-3443ee48d557" />
- | <img width="1915" height="876" alt="image" src="https://github.com/user-attachments/assets/e48334c0-eb01-4ba4-adde-694c5a35e4bd" />
- |
+| <img alt="Login" src="https://github.com/user-attachments/assets/166f0060-31c3-45fd-853a-3443ee48d557" /> | <img alt="Dashboard" src="https://github.com/user-attachments/assets/e48334c0-eb01-4ba4-adde-694c5a35e4bd" /> |
 
 | Candidates | Applications pipeline |
 |---|---|
-| <img width="1916" height="719" alt="image" src="https://github.com/user-attachments/assets/469e9164-e5ad-43a7-b962-42158e6b6932" />
- | !<img width="1919" height="757" alt="image" src="https://github.com/user-attachments/assets/53a75a08-3309-4fc1-8a12-eef08191813d" />
- |
+| <img alt="Candidates" src="https://github.com/user-attachments/assets/469e9164-e5ad-43a7-b962-42158e6b6932" /> | <img alt="Applications pipeline" src="https://github.com/user-attachments/assets/53a75a08-3309-4fc1-8a12-eef08191813d" /> |
 
 | Application details — Interviews · Offer · Communication · Notes | Branding & live preview |
 |---|---|
-| <img width="1901" height="719" alt="image" src="https://github.com/user-attachments/assets/363185b2-246c-407e-8699-d33e7b21ff75" />
- | <img width="1891" height="914" alt="image" src="https://github.com/user-attachments/assets/68ffa6e1-ed98-496d-b055-23f6a42422d1" />
- |
+| <img alt="Application details" src="https://github.com/user-attachments/assets/363185b2-246c-407e-8699-d33e7b21ff75" /> | <img alt="Branding and live preview" src="https://github.com/user-attachments/assets/68ffa6e1-ed98-496d-b055-23f6a42422d1" /> |
 
 ### Public careers portal (tenant‑branded)
 
 | Careers listing | Job details & apply |
 |---|---|
-| <img width="1913" height="735" alt="image" src="https://github.com/user-attachments/assets/6a69dac3-9a06-4784-9b9f-ffa53baf4fcc" />
- | <img width="1706" height="882" alt="image" src="https://github.com/user-attachments/assets/6984f16f-2298-4ec6-9e56-2859a138f975" />
- |
+| <img alt="Careers listing" src="https://github.com/user-attachments/assets/6a69dac3-9a06-4784-9b9f-ffa53baf4fcc" /> | <img alt="Job details and apply" src="https://github.com/user-attachments/assets/6984f16f-2298-4ec6-9e56-2859a138f975" /> |
 
 ---
 
