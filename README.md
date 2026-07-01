@@ -62,7 +62,8 @@ The platform provides:
 
 | Application details — Interviews · Offer · Communication · Notes | Branding & live preview |
 |---|---|
-| ![Application details](docs/screenshots/application-details.png) | ![Branding](docs/screenshots/branding.png) |
+| ![Application details](docs/screenshots/application-details.png) | <img width="1364" height="565" alt="image" src="https://github.com/user-attachments/assets/e0f3c44d-5c9c-43ef-ae25-1b59803ee1ad" />
+ |
 
 ### Public careers portal (tenant‑branded)
 
